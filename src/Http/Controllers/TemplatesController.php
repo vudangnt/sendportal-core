@@ -53,10 +53,8 @@ class TemplatesController extends Controller
     {
         $data = $request->validated();
 
-        $this->service->store(Sendportal::currentWorkspaceId(), $data);
-
-        return redirect()
-            ->route('sendportal.templates.index');
+        $data =   $this->service->store(Sendportal::currentWorkspaceId(), $data);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
@@ -65,7 +63,6 @@ class TemplatesController extends Controller
     public function edit(int $id): View
     {
         $template = $this->templates->find(Sendportal::currentWorkspaceId(), $id);
-
         return view('sendportal::templates.edit', compact('template'));
     }
 
@@ -75,11 +72,9 @@ class TemplatesController extends Controller
     public function update(TemplateUpdateRequest $request, int $id): RedirectResponse
     {
         $data = $request->validated();
+       $data =  $this->service->update(Sendportal::currentWorkspaceId(), $id, $data);
+        return response()->json(['success' => true, 'data' => $data]);
 
-        $this->service->update(Sendportal::currentWorkspaceId(), $id, $data);
-
-        return redirect()
-            ->route('sendportal.templates.index');
     }
 
     /**

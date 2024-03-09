@@ -24,6 +24,7 @@ class TemplateUpdateRequest extends FormRequest
                     ->ignore($this->template),
             ],
             'content' => 'required',
+            'data_json' => 'string|nullable',
         ];
     }
 

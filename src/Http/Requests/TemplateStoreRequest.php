@@ -23,6 +23,7 @@ class TemplateStoreRequest extends FormRequest
                     ->where('workspace_id', Sendportal::currentWorkspaceId()),
             ],
             'content' => 'required',
+            'data_json' => 'string|nullable',
         ];
     }
 
