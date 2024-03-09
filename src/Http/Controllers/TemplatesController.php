@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sendportal\Base\Http\Controllers;
 
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Sendportal\Base\Facades\Sendportal;
@@ -49,7 +50,7 @@ class TemplatesController extends Controller
     /**
      * @throws Exception
      */
-    public function store(TemplateStoreRequest $request): RedirectResponse
+    public function store(TemplateStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
 
@@ -69,7 +70,7 @@ class TemplatesController extends Controller
     /**
      * @throws Exception
      */
-    public function update(TemplateUpdateRequest $request, int $id): RedirectResponse
+    public function update(TemplateUpdateRequest $request, int $id): JsonResponse
     {
         $data = $request->validated();
        $data =  $this->service->update(Sendportal::currentWorkspaceId(), $id, $data);
