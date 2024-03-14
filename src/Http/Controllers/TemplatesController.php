@@ -58,6 +58,12 @@ class TemplatesController extends Controller
         return response()->json(['success' => true, 'data' => $data]);
     }
 
+    public function duplicate(int $id): View
+    {
+        $template = $this->templates->find(Sendportal::currentWorkspaceId(), $id);
+        $template->name = $template->name . ' (duplicate)';
+        return view('sendportal::templates.create', compact('template'));
+    }
     /**
      * @throws Exception
      */

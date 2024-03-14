@@ -118,7 +118,11 @@ class WebRoutes
                 // Tags.
                 $appRouter->resource('tags', 'Tags\TagsController')->except(['show']);
                 $appRouter->resource('templates', 'TemplatesController');
-
+                $appRouter->name('templates.')->prefix('templates')->group(static function (
+                    Router $templateRouter
+                ) {
+                    $templateRouter->get('{id}/duplicate', 'TemplatesController@duplicate')->name('duplicate');
+                });
                 // Subscribers.
                 $appRouter->name('subscribers.')->prefix('subscribers')->namespace('Subscribers')->group(static function (
                     Router $subscriberRouter

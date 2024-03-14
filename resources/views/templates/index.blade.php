@@ -13,6 +13,10 @@
             <a class="btn btn-primary btn-md btn-flat" href="{{ route('sendportal.templates.create') }}">
                 <i class="fa fa-plus mr-1"></i> {{ __('New Template') }}
             </a>
+
+            <a class="btn btn-info btn-md btn-flat" href="https://editor.digisource.vn/" target="_blank">
+                <i class="fa fa-pencil mr-1"></i> Design Template
+            </a>
         @endslot
     @endcomponent
 
