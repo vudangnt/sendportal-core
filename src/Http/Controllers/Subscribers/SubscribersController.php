@@ -42,7 +42,7 @@ class SubscribersController extends Controller
     {
         $subscribers = $this->subscriberRepo->paginate(
             Sendportal::currentWorkspaceId(),
-            'email',
+            'updated_atDesc',
             ['tags'],
             50,
             request()->all()
