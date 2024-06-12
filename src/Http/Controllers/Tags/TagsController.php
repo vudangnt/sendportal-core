@@ -11,6 +11,7 @@ use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\TagStoreRequest;
 use Sendportal\Base\Http\Requests\TagUpdateRequest;
+use Sendportal\Base\Models\Tag;
 use Sendportal\Base\Repositories\TagTenantRepository;
 
 class TagsController extends Controller
@@ -28,14 +29,27 @@ class TagsController extends Controller
      */
     public function index(): View
     {
-        $tags = $this->tagRepository->paginate(Sendportal::currentWorkspaceId(), 'name');
-
+        $tags = $this->tagRepository->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
+        foreach ($tags as $key => $tag) {
+            if ($tag['parent_id'] === 0) {
+                foreach ($tags as $child) {
+                    if ($child['parent_id'] === $tag['id']) {
+                        $tags[$key]['children'][] = $child;
+                    }
+                }
+            }
+        }
+        // Hàm lọc
+        $tags = array_filter($tags, function ($item) {
+            return $item['parent_id'] === 0;
+        });
         return view('sendportal::tags.index', compact('tags'));
     }
 
     public function create(): View
     {
-        return view('sendportal::tags.create');
+        $parentTags = Tag::where('parent_id', 0)->get();
+        return view('sendportal::tags.create', compact('parentTags'));
     }
 
     /**
@@ -44,7 +58,6 @@ class TagsController extends Controller
     public function store(TagStoreRequest $request): RedirectResponse
     {
         $this->tagRepository->store(Sendportal::currentWorkspaceId(), $request->all());
-
         return redirect()->route('sendportal.tags.index');
     }
 
@@ -54,8 +67,8 @@ class TagsController extends Controller
     public function edit(int $id): View
     {
         $tag = $this->tagRepository->find(Sendportal::currentWorkspaceId(), $id, ['subscribers']);
-
-        return view('sendportal::tags.edit', compact('tag'));
+        $parentTags = Tag::where('parent_id', 0)->get();
+        return view('sendportal::tags.edit', compact('tag', 'parentTags'));
     }
 
     /**
@@ -73,6 +86,16 @@ class TagsController extends Controller
      */
     public function destroy(int $id): RedirectResponse
     {
+        $allChild = $this->tagRepository->getBy(
+            Sendportal::currentWorkspaceId(),
+            ['parent_id' => $id]
+        );
+
+        foreach ($allChild as $item) {
+            $item->parent_id = 0;
+            $item->save();
+        }
+
         $this->tagRepository->destroy(Sendportal::currentWorkspaceId(), $id);
 
         return redirect()->route('sendportal.tags.index');
