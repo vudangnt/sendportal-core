@@ -118,19 +118,20 @@ class WorkspacesController extends Controller
 
     public function destroy(Request $request)
     {
-        $userId = Arr::get($request, 'id');
-        $res = User::destroy($userId);
-        if ($res > 0) {
+        $email = Arr::get($request, 'email');
+        $res = User::where('email',$email);
+       $resul =  $res->delete();
+        if ($resul > 0) {
             return [
                 "status" => true,
                 "message" => "Xoá user thành công",
-                "user_id" => $userId
+                "user_email" => $email
             ];
         } else {
             return [
                 "status" => false,
                 "message" => "Xoá user không thành công",
-                "user_id" => $userId,
+                "user_email" => $email,
                 "error" => "ERROR"
             ];
         }
