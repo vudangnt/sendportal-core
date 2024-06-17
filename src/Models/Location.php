@@ -1,30 +1,11 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Sendportal\Base\Models;
 
-use Carbon\Carbon;
 use Database\Factories\TagFactory;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/**
- * @property int $id
- * @property int $workspace_id
- * @property string $name
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- *
- * @property EloquentCollection $campaigns
- * @property EloquentCollection $subscribers
- * @property EloquentCollection $active_subscribers
- *
- * @method static TagFactory factory
- */
-class Tag extends BaseModel
+class Location extends BaseModel
 {
     use HasFactory;
 
@@ -36,7 +17,7 @@ class Tag extends BaseModel
     }
 
     /** @var string */
-    protected $table = 'sendportal_tags';
+    protected $table = 'locations';
 
     /** @var array */
     protected $fillable = [

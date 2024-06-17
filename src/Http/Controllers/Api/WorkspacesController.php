@@ -68,7 +68,7 @@ class WorkspacesController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'email_verified_at' => now(),
-                'password' => Hash::make($data['password']),
+                'password' => $data['password'] //Hash::make($data['password']),
             ]);
 
             // Create a new workspace and attach as owner.

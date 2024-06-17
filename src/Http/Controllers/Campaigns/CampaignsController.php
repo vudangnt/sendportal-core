@@ -7,6 +7,7 @@ namespace Sendportal\Base\Http\Controllers\Campaigns;
 use Exception;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\CampaignStoreRequest;
@@ -114,6 +115,27 @@ class CampaignsController extends Controller
     }
 
     /**
+     * Handle checkbox fields.
+     *
+     * NOTE(david): this is here because the Campaign model is marked as being unable to use boolean fields.
+     */
+    private function handleCheckboxes(array $input): array
+    {
+        $checkboxFields = [
+            'is_open_tracking',
+            'is_click_tracking'
+        ];
+
+        foreach ($checkboxFields as $checkboxField) {
+            if (!isset($input[$checkboxField])) {
+                $input[$checkboxField] = false;
+            }
+        }
+
+        return $input;
+    }
+
+    /**
      * @throws Exception
      */
     public function show(int $id): ViewContract
@@ -168,8 +190,23 @@ class CampaignsController extends Controller
             return redirect()->route('sendportal.campaigns.status', $id);
         }
 
-        $tags = $this->tags->all(Sendportal::currentWorkspaceId(), 'name');
+        $tags = $this->tags->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
 
+        foreach ($tags as $key => $tag) {
+            if ($tag['parent_id'] === 0) {
+                foreach ($tags as $child) {
+                    if ($child['parent_id'] === $tag['id']) {
+                        $tags[$key]['child'][] = $child;
+                    }
+                }
+                $tags[$key]['child_count'] = count($tags[$key]['child']);
+            }
+        }
+        // Hàm lọc
+        $tags = array_filter($tags, function ($item) {
+            return $item['parent_id'] === 0;
+        });
+//dd($tags);
         return view('sendportal::campaigns.preview', compact('campaign', 'tags', 'subscriberCount'));
     }
 
@@ -190,26 +227,5 @@ class CampaignsController extends Controller
             'campaign' => $campaign,
             'campaignStats' => $this->campaignStatisticsService->getForCampaign($campaign, $workspaceId),
         ]);
-    }
-
-    /**
-     * Handle checkbox fields.
-     *
-     * NOTE(david): this is here because the Campaign model is marked as being unable to use boolean fields.
-     */
-    private function handleCheckboxes(array $input): array
-    {
-        $checkboxFields = [
-            'is_open_tracking',
-            'is_click_tracking'
-        ];
-
-        foreach ($checkboxFields as $checkboxField) {
-            if (!isset($input[$checkboxField])) {
-                $input[$checkboxField] = false;
-            }
-        }
-
-        return $input;
     }
 }
