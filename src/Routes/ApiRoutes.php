@@ -17,11 +17,29 @@ class ApiRoutes
                     $apiRouter->post('campaigns/{id}/send', 'CampaignDispatchController@send')->name('campaigns.send');
                     $apiRouter->apiResource('subscribers', 'SubscribersController');
                     $apiRouter->apiResource('tags', 'TagsController');
+                    $apiRouter->apiResource('locations', 'LocationsController');
 
                     $apiRouter->post('workspaces/create-update', 'WorkspacesController@createOrUpdate');
                     $apiRouter->post('workspaces/destroy-remove-user', 'WorkspacesController@destroy');
 
 
+                    // locations subscribers
+                    $apiRouter->apiResource('subscribers.locations', 'SubscriberLocationsController')
+                        ->except(['show', 'update', 'destroy']);
+                    $apiRouter->put('subscribers/{subscriber}/locations', 'SubscriberLocationsController@update')
+                        ->name('subscribers.locations.update');
+                    $apiRouter->delete('subscribers/{subscriber}/locations', 'SubscriberLocationsController@destroy')
+                        ->name('subscribers.locations.destroy');
+
+                    $apiRouter->apiResource('locations.subscribers', 'LocationSubscribersController')
+                        ->except(['show', 'update', 'destroy']);
+                    $apiRouter->put('locations/{location}/subscribers', 'LocationSubscribersController@update')
+                        ->name('locations.subscribers.update');
+                    $apiRouter->delete('locations/{location}/subscribers', 'LocationSubscribersController@destroy')
+                        ->name('locations.subscribers.destroy');
+
+
+                    // tags subscribers
                     $apiRouter->apiResource('subscribers.tags', 'SubscriberTagsController')
                         ->except(['show', 'update', 'destroy']);
                     $apiRouter->put('subscribers/{subscriber}/tags', 'SubscriberTagsController@update')

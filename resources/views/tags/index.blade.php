@@ -16,41 +16,60 @@
         @endslot
     @endcomponent
 
-    <div class="card">
-        <div class="card-table">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>{{ __('Name') }}</th>
-                    <th>{{ __('Subscribers') }}</th>
-                    <th>{{ __('Actions') }}</th>
-                </tr>
-                </thead>
-                <tbody>
-                @forelse($tags as $tag)
-                    <tr>
-                        <td>
-                            <a href="{{ route('sendportal.tags.edit', $tag->id) }}">
-                                {{ $tag->name }}
-                            </a>
-                        </td>
-                        <td>{{ $tag->subscribers_count }}</td>
-                        <td>
-                            @include('sendportal::tags.partials.actions')
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="100%">
-                            <p class="empty-table-text">{{ __('You have not created any tags.') }}</p>
-                        </td>
-                    </tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <h2>List Tags</h2>
+    <ul id="tag-tree">
+        @foreach($tags as $tag)
+            <li>
+                <div class="actions form-group" style="margin-left: auto;">
+                    <a class="link"> <span class="toggle"
+                                           onclick="toggleElementById({{ "tag".$tag['id']}})">{{ $tag['name'] }} ({{ $tag['active_subscribers_count'] }} {{ __('subscribers') }} )</span></a>
+                    <a class="pl-3" href="{{ route('sendportal.tags.edit', $tag['id']) }}"
+                       >
+                        <i class="fa fa-edit" aria-hidden="false"></i>
+                    </a>
+                    <form class="pl-3" action="{{ route('sendportal.tags.destroy', $tag['id']) }}" method="POST">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="fa fa-trash" style="color: red; border:none "></button>
+                    </form>
+                </div>
 
-    @include('sendportal::layouts.partials.pagination', ['records' => $tags])
+                @if( isset($tag['children']) && count($tag['children']??0) > 0)
+                    <ul style="display: block;" id="tag{{$tag['id']}}">
+                        @include('sendportal::tags.partials.subtags', ['subtags' => $tag['children']])
+                    </ul>
+                @endif
 
+            </li>
+        @endforeach
+    </ul>
+
+    <style>
+        .form-group {
+            margin: 0 auto 1rem auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    </style>
+
+    <script>
+        function toggleElementById(elementId) {
+            console.log(elementId);
+            var element = document.getElementById(elementId);
+            if (elementId) {
+                var isHidden = elementId.style.display === 'none';
+                elementId.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+
+        function toggleChildren(element) {
+            var nextUl = element.parentNode.nextElementSibling.querySelector('ul');
+            console.log(nextUl);
+            if (nextUl) {
+                var isHidden = nextUl.style.display === 'none';
+                nextUl.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+    </script>
 @endsection

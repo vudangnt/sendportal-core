@@ -35,6 +35,10 @@ class SubscriberRequest extends FormRequest
                 'nullable',
                 'array',
             ],
+            'locations' => [
+                'nullable',
+                'array',
+            ],
         ];
     }
 }

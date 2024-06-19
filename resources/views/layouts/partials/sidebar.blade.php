@@ -38,6 +38,12 @@
             </a>
         </li>
 
+        <li class="nav-item {{ request()->is('*locations*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('sendportal.locations.index') }}">
+                <i class="fa-fw fas fa-envelope mr-2"></i><span>{{ __('Email Services') }}</span>
+            </a>
+        </li>
+
         {!! \Sendportal\Base\Facades\Sendportal::sidebarHtmlContent() !!}
 
     </ul>

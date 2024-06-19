@@ -15,11 +15,13 @@ class CreateLocationsTable extends Migration
      */
     public function up()
     {
-        Schema::create('locations', function (Blueprint $table) {
+        Schema::create('sendportal_locations', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->string('code')->nullable();
             $table->string('type')->nullable();
+            $table->integer('workspace_id')->default(0);
+            $table->integer('parent_id')->default(0);
             $table->timestamps();
         });
     }

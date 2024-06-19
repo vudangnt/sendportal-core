@@ -114,6 +114,8 @@ class WebRoutes
                     $servicesRouter->get('{id}/test', 'TestEmailServiceController@create')->name('test.create');
                     $servicesRouter->post('{id}/test', 'TestEmailServiceController@store')->name('test.store');
                 });
+                // Locations
+                $appRouter->resource('locations', 'Locations\LocationsController')->except(['show']);
 
                 // Tags.
                 $appRouter->resource('tags', 'Tags\TagsController')->except(['show']);

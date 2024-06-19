@@ -38,14 +38,8 @@ class Subscriber extends BaseModel
 
     // NOTE(david): we require this because of namespace issues when resolving factories from models
     // not in the default `App\Models` namespace.
-    protected static function newFactory()
-    {
-        return SubscriberFactory::new();
-    }
-
     /** @var string */
     protected $table = 'sendportal_subscribers';
-
     /** @var string[] */
     protected $fillable = [
         'hash',
@@ -56,26 +50,14 @@ class Subscriber extends BaseModel
         'unsubscribed_at',
         'unsubscribe_event_id'
     ];
-
     /** @var string[] */
     protected $casts = [
         'unsubscribed_at' => 'datetime',
     ];
 
-    public function tags(): BelongsToMany
+    protected static function newFactory()
     {
-        return $this->belongsToMany(Tag::class, 'sendportal_tag_subscriber')->withTimestamps();
-    }
-
-    public function messages(): HasMany
-    {
-        return $this->hasMany(Message::class)
-            ->orderBy('id', 'desc');
-    }
-
-    public function getFullNameAttribute(): string
-    {
-        return "{$this->first_name} {$this->last_name}";
+        return SubscriberFactory::new();
     }
 
     protected static function boot()
@@ -96,5 +78,26 @@ class Subscriber extends BaseModel
                 $subscriber->messages()->delete();
             }
         );
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'sendportal_tag_subscriber')->withTimestamps();
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class)
+            ->orderBy('id', 'desc');
+    }
+
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class, 'sendportal_location_subscriber')->withTimestamps();
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 }

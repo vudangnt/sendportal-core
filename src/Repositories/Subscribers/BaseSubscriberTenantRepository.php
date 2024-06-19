@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Sendportal\Base\Repositories\Subscribers;
@@ -10,7 +11,8 @@ use Illuminate\Support\Collection;
 use Sendportal\Base\Models\Subscriber;
 use Sendportal\Base\Repositories\BaseTenantRepository;
 
-abstract class BaseSubscriberTenantRepository extends BaseTenantRepository implements SubscriberTenantRepositoryInterface
+abstract class BaseSubscriberTenantRepository extends BaseTenantRepository implements
+    SubscriberTenantRepositoryInterface
 {
     /** @var string */
     protected $modelName = Subscriber::class;
@@ -25,14 +27,16 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         /** @var Subscriber $instance */
         $instance = $this->getNewInstance();
 
-        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags']));
+        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'locations']));
 
         // Only sync tags if its actually present. This means that users must
         // pass through an empty tags array if they want to delete all tags.
         if (isset($data['tags'])) {
             $this->syncTags($instance, Arr::get($data, 'tags', []));
         }
-
+        if (isset($data['locations'])) {
+            $this->syncLocations($instance, Arr::get($data, 'locations', []));
+        }
         return $subscriber;
     }
 
@@ -49,6 +53,11 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         return $subscriber->tags()->sync($tags);
     }
 
+    public function syncLocations(Subscriber $subscriber, array $locations = [])
+    {
+        return $subscriber->locations()->sync($locations);
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -58,14 +67,16 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
 
         $instance = $this->find($workspaceId, $id);
 
-        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'id']));
+        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'locations', 'id']));
 
         // Only sync tags if its actually present. This means that users must
         // pass through an empty tags array if they want to delete all tags.
         if (isset($data['tags'])) {
             $this->syncTags($instance, Arr::get($data, 'tags', []));
         }
-
+        if (isset($data['locations'])) {
+            $this->syncLocations($instance, Arr::get($data, 'locations', []));
+        }
         return $subscriber;
     }
 
@@ -100,6 +111,7 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         $this->applyNameFilter($instance, $filters);
         $this->applyStatusFilter($instance, $filters);
         $this->applyTagFilter($instance, $filters);
+        $this->applyLocationFilter($instance, $filters);
     }
 
     /**
@@ -139,8 +151,28 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
     {
         if ($tagIds = Arr::get($filters, 'tags')) {
             $instance->select('sendportal_subscribers.*')
-                ->leftJoin('sendportal_tag_subscriber', 'sendportal_subscribers.id', '=', 'sendportal_tag_subscriber.subscriber_id')
+                ->leftJoin(
+                    'sendportal_tag_subscriber',
+                    'sendportal_subscribers.id',
+                    '=',
+                    'sendportal_tag_subscriber.subscriber_id'
+                )
                 ->whereIn('sendportal_tag_subscriber.tag_id', $tagIds)
+                ->distinct();
+        }
+    }
+
+    protected function applyLocationFilter(Builder $instance, array $filters = []): void
+    {
+        if ($locationIds = Arr::get($filters, 'locations')) {
+            $instance->select('sendportal_subscribers.*')
+                ->leftJoin(
+                    'sendportal_location_subscriber',
+                    'sendportal_subscribers.id',
+                    '=',
+                    'sendportal_location_subscriber.subscriber_id'
+                )
+                ->whereIn('sendportal_location_subscriber.location_id', $locationIds)
                 ->distinct();
         }
     }

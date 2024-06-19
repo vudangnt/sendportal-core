@@ -17,6 +17,7 @@ use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\SubscriberRequest;
 use Sendportal\Base\Models\UnsubscribeEventType;
+use Sendportal\Base\Repositories\LocationTenantRepository;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
 use Sendportal\Base\Repositories\TagTenantRepository;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -28,11 +29,16 @@ class SubscribersController extends Controller
 
     /** @var TagTenantRepository */
     private $tagRepo;
+    private $locationTenantRepository;
 
-    public function __construct(SubscriberTenantRepositoryInterface $subscriberRepo, TagTenantRepository $tagRepo)
-    {
+    public function __construct(
+        SubscriberTenantRepositoryInterface $subscriberRepo,
+        TagTenantRepository $tagRepo,
+        LocationTenantRepository $locationTenantRepository
+    ) {
         $this->subscriberRepo = $subscriberRepo;
         $this->tagRepo = $tagRepo;
+        $this->locationTenantRepository = $locationTenantRepository;
     }
 
     /**
@@ -48,8 +54,9 @@ class SubscribersController extends Controller
             request()->all()
         )->withQueryString();
         $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
+        $locations = $this->locationTenantRepository->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
 
-        return view('sendportal::subscribers.index', compact('subscribers', 'tags'));
+        return view('sendportal::subscribers.index', compact('subscribers', 'tags', 'locations'));
     }
 
     /**
@@ -58,9 +65,14 @@ class SubscribersController extends Controller
     public function create(): View
     {
         $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId());
+        $locations = $this->locationTenantRepository->pluck(Sendportal::currentWorkspaceId());
         $selectedTags = [];
+        $selectedLocations = [];
 
-        return view('sendportal::subscribers.create', compact('tags', 'selectedTags'));
+        return view(
+            'sendportal::subscribers.create',
+            compact('tags', 'locations', 'selectedTags', 'selectedLocations')
+        );
     }
 
     /**
@@ -100,9 +112,11 @@ class SubscribersController extends Controller
     {
         $subscriber = $this->subscriberRepo->find(Sendportal::currentWorkspaceId(), $id);
         $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId());
+        $locations = $this->locationTenantRepository->pluck(Sendportal::currentWorkspaceId());
         $selectedTags = $subscriber->tags->pluck('name', 'id');
+        $selectedLocations = $subscriber->locations->pluck('name', 'id');
 
-        return view('sendportal::subscribers.edit', compact('subscriber', 'tags', 'selectedTags'));
+        return view('sendportal::subscribers.edit', compact('subscriber', 'tags', 'locations','selectedTags','selectedLocations'));
     }
 
     /**
@@ -157,7 +171,9 @@ class SubscribersController extends Controller
         $subscribers = $this->subscriberRepo->all(Sendportal::currentWorkspaceId(), 'id');
 
         if (!$subscribers->count()) {
-            return redirect()->route('sendportal.subscribers.index')->withErrors(__('There are no subscribers to export'));
+            return redirect()->route('sendportal.subscribers.index')->withErrors(
+                __('There are no subscribers to export')
+            );
         }
 
         return (new FastExcel($subscribers))

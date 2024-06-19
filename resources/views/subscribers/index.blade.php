@@ -34,7 +34,15 @@
                         </select>
                     </div>
                 @endif
-
+                @if(count($locations))
+                    <div id="tagFilterSelector" class="mr-2">
+                        <select multiple="" class="selectpicker form-control form-control-sm" name="locations[]" data-width="auto" >
+                        @foreach($locations as $locationId => $locationName)
+                                <option value="{{ $locationId }}" @if(in_array($locationId, request()->get('locations') ?? [])) selected @endif>{{ $locationName }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
                 <button type="submit" class="btn btn-light btn-md">{{ __('Search') }}</button>
 
                 @if(request()->anyFilled(['name', 'status']))
@@ -76,6 +84,7 @@
                     <th>{{ __('Email') }}</th>
                     <th>{{ __('Name') }}</th>
                     <th>{{ __('Tags') }}</th>
+                    <th>{{ __('Locations') }}</th>
                     <th>{{ __('Created') }}</th>
                     <th>{{ __('Status') }}</th>
                     <th>{{ __('Actions') }}</th>
@@ -96,6 +105,14 @@
                             @empty
                                 -
                             @endforelse
+                        </td>
+                        <td>
+                            @forelse($subscriber->locations as $location)
+                                <span class="badge badge-light">{{ $location->name }}</span>
+                            @empty
+                                -
+                            @endforelse
+                        </td>
                         <td><span
                                 title="{{ $subscriber->created_at }}">{{ $subscriber->created_at->diffForHumans() }}</span>
                         </td>

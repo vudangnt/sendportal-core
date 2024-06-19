@@ -2,9 +2,10 @@
 
 namespace Sendportal\Base\Models;
 
-use Database\Factories\TagFactory;
+use Database\Factories\LocationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class Location extends BaseModel
 {
     use HasFactory;
@@ -13,15 +14,15 @@ class Location extends BaseModel
     // not in the default `App\Models` namespace.
     protected static function newFactory()
     {
-        return TagFactory::new();
+        return LocationFactory::new();
     }
 
     /** @var string */
-    protected $table = 'locations';
+    protected $table = 'sendportal_locations';
 
     /** @var array */
     protected $fillable = [
-        'name','parent_id'
+        'name','parent_id', 'code', 'type'
     ];
 
     /** @var array */
@@ -29,17 +30,12 @@ class Location extends BaseModel
         'subscribers','activeSubscribers'
     ];
 
-    public function campaigns(): BelongsToMany
-    {
-        return $this->belongsToMany(Campaign::class, 'sendportal_campaign_tag');
-    }
-
     /**
      * Subscribers in this tag.
      */
     public function subscribers(): BelongsToMany
     {
-        return $this->belongsToMany(Subscriber::class, 'sendportal_tag_subscriber')->withTimestamps();
+        return $this->belongsToMany(Subscriber::class, 'sendportal_location_subscriber')->withTimestamps();
     }
 
     /**

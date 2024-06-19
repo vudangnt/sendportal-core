@@ -7,7 +7,7 @@ namespace Database\Factories;
 use Sendportal\Base\Models;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Sendportal\Base\Facades\Sendportal;
-use Sendportal\Base\Models\Tag;
+use Sendportal\Base\Models\Location;
 
 class LocationFactory extends Factory
 {

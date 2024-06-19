@@ -13,19 +13,19 @@ use Sendportal\Base\Http\Requests\Api\SubscriberTagStoreRequest;
 use Sendportal\Base\Http\Requests\Api\SubscriberTagUpdateRequest;
 use Sendportal\Base\Http\Resources\Tag as TagResource;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
-use Sendportal\Base\Services\Subscribers\Tags\ApiSubscriberTagService;
+use Sendportal\Base\Services\Subscribers\Tags\ApiSubscriberLocationService;
 
 class SubscriberTagsController extends Controller
 {
     /** @var SubscriberTenantRepositoryInterface */
     private $subscribers;
 
-    /** @var ApiSubscriberTagService */
+    /** @var ApiSubscriberLocationService */
     private $apiService;
 
     public function __construct(
         SubscriberTenantRepositoryInterface $subscribers,
-        ApiSubscriberTagService $apiService
+        ApiSubscriberLocationService $apiService
     ) {
         $this->subscribers = $subscribers;
         $this->apiService = $apiService;
