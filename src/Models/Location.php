@@ -53,6 +53,6 @@ class Location extends BaseModel
      */
     public function child(): HasMany
     {
-        return $this->hasMany(Tag::class, 'parent_id');
+        return $this->hasMany(Location::class, 'parent_id');
     }
 }

@@ -14,6 +14,7 @@ use Sendportal\Base\Http\Requests\CampaignStoreRequest;
 use Sendportal\Base\Models\EmailService;
 use Sendportal\Base\Repositories\Campaigns\CampaignTenantRepositoryInterface;
 use Sendportal\Base\Repositories\EmailServiceTenantRepository;
+use Sendportal\Base\Repositories\LocationTenantRepository;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
 use Sendportal\Base\Repositories\TagTenantRepository;
 use Sendportal\Base\Repositories\TemplateTenantRepository;
@@ -40,11 +41,13 @@ class CampaignsController extends Controller
      * @var CampaignStatisticsService
      */
     protected $campaignStatisticsService;
+    private LocationTenantRepository $locations;
 
     public function __construct(
         CampaignTenantRepositoryInterface $campaigns,
         TemplateTenantRepository $templates,
         TagTenantRepository $tags,
+        LocationTenantRepository $locations,
         EmailServiceTenantRepository $emailServices,
         SubscriberTenantRepositoryInterface $subscribers,
         CampaignStatisticsService $campaignStatisticsService
@@ -52,6 +55,7 @@ class CampaignsController extends Controller
         $this->campaigns = $campaigns;
         $this->templates = $templates;
         $this->tags = $tags;
+        $this->locations = $locations;
         $this->emailServices = $emailServices;
         $this->subscribers = $subscribers;
         $this->campaignStatisticsService = $campaignStatisticsService;
@@ -191,6 +195,7 @@ class CampaignsController extends Controller
         }
 
         $tags = $this->tags->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
+        $locations = $this->locations->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
 
         foreach ($tags as $key => $tag) {
             if ($tag['parent_id'] === 0) {
@@ -199,15 +204,30 @@ class CampaignsController extends Controller
                         $tags[$key]['child'][] = $child;
                     }
                 }
-                $tags[$key]['child_count'] = count($tags[$key]['child']);
+                $tags[$key]['child_count'] = count($tags[$key]['child']??[]);
             }
         }
         // Hàm lọc
         $tags = array_filter($tags, function ($item) {
             return $item['parent_id'] === 0;
         });
-//dd($tags);
-        return view('sendportal::campaigns.preview', compact('campaign', 'tags', 'subscriberCount'));
+
+
+        foreach ($locations as $key => $location) {
+            if ($location['parent_id'] === 0) {
+                foreach ($locations as $child) {
+                    if ($child['parent_id'] === $location['id']) {
+                        $locations[$key]['child'][] = $child;
+                    }
+                }
+                $locations[$key]['child_count'] = count($locations[$key]['child']??[]);
+            }
+        }
+        // Hàm lọc
+        $locations = array_filter($locations, function ($item) {
+            return $item['parent_id'] === 0;
+        });
+        return view('sendportal::campaigns.preview', compact('campaign', 'tags', 'locations', 'subscriberCount'));
     }
 
     /**
@@ -220,10 +240,10 @@ class CampaignsController extends Controller
         $campaign = $this->campaigns->find($workspaceId, $id, ['status']);
 
         if ($campaign->sent) {
-            return redirect()->route('sendportal.campaigns.reports.index', $id);
+            return redirect()->route('sendportal . campaigns . reports . index', $id);
         }
 
-        return view('sendportal::campaigns.status', [
+        return view('sendportal::campaigns . status', [
             'campaign' => $campaign,
             'campaignStats' => $this->campaignStatisticsService->getForCampaign($campaign, $workspaceId),
         ]);
