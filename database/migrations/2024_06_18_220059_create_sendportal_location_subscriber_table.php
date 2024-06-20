@@ -19,7 +19,7 @@ class CreateSendportalLocationSubscriberTable extends Migration
             $table->unsignedBigInteger('subscriber_id');
             $table->timestamps();
 
-            $table->foreign('location_id')->references('id')->on('locations');
+            $table->foreign('location_id')->references('id')->on('sendportal_locations');
             $table->foreign('subscriber_id')->references('id')->on('sendportal_subscribers');
 
         });
