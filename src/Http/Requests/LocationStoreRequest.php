@@ -15,7 +15,7 @@ class LocationStoreRequest extends FormRequest
         return [
             'name' => [
                 'required',
-                Rule::unique('locations', 'name')
+                Rule::unique('sendportal_locations', 'name')
                     ->where('workspace_id', Sendportal::currentWorkspaceId()),
             ],
             'type' => [
