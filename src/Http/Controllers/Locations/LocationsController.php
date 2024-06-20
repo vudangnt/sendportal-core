@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
-use Sendportal\Base\Http\Requests\LocationstoreRequest;
+use Sendportal\Base\Http\Requests\LocationStoreRequest;
 use Sendportal\Base\Http\Requests\TagUpdateRequest;
 use Sendportal\Base\Models\Location;
 use Sendportal\Base\Repositories\LocationTenantRepository;
@@ -58,7 +58,7 @@ class LocationsController extends Controller
     /**
      * @throws Exception
      */
-    public function store(LocationstoreRequest $request): RedirectResponse
+    public function store(LocationStoreRequest $request): RedirectResponse
     {
         $data = $request->all();
         $name = Arr::get($request, 'name');
