@@ -52,7 +52,12 @@ class LocationsController extends Controller
     public function create(): View
     {
         $parentlocations = Location::where('parent_id', 0)->get();
-        return view('sendportal::locations.create', compact('parentlocations'));
+        $types = [
+            'city' => 'Thành phố',
+            'state' => 'Tỉnh',
+            'country' => 'Quốc gia',
+        ];
+        return view('sendportal::locations.create', compact('parentlocations', 'types'));
     }
 
     /**
