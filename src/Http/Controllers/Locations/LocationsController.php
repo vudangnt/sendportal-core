@@ -75,7 +75,14 @@ class LocationsController extends Controller
     {
         $location = $this->locationRepository->find(Sendportal::currentWorkspaceId(), $id, ['subscribers']);
         $parentlocations = Location::where('parent_id', 0)->get();
-        return view('sendportal::locations.edit', compact('location', 'parentlocations'));
+
+        $types = [
+            'city' => 'Thành phố',
+            'state' => 'Tỉnh',
+            'country' => 'Quốc gia',
+        ];
+
+        return view('sendportal::locations.edit', compact('location', 'parentlocations', 'types'));
     }
 
     /**
