@@ -22,6 +22,7 @@ use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\Api\WorkspaceStorageUpdateRequest;
 use Sendportal\Base\Http\Resources\Workspace as WorkspaceResource;
 use Sendportal\Base\Repositories\EmailServiceTenantRepository;
+use Sendportal\Base\Repositories\UsersRepository;
 use Sendportal\Base\Repositories\WorkspacesRepository;
 use Illuminate\Http\Response;
 
@@ -30,6 +31,7 @@ class WorkspacesController extends Controller
     /** @var WorkspacesRepository */
     private $workspaces;
     private ApiTokenRepository $apiTokensRepo;
+    private UsersRepository $usersRepository;
 
     /**
      * @param WorkspacesRepository $workspaces
@@ -38,9 +40,11 @@ class WorkspacesController extends Controller
      */
     public function __construct(
         WorkspacesRepository $workspaces,
+        UsersRepository $usersRepository,
         ApiTokenRepository $apiTokensRepo,
         EmailServiceTenantRepository $emailServiceTenantRepository
     ) {
+        $this->usersRepository = $usersRepository;
         $this->workspaces = $workspaces;
         $this->apiTokensRepo = $apiTokensRepo;
         $this->emailServiceTenantRepository = $emailServiceTenantRepository;
@@ -61,42 +65,59 @@ class WorkspacesController extends Controller
     public function createOrUpdate(WorkspaceStorageUpdateRequest $request)
     {
         $data = $request->all();
+        $email = Arr::get($request, 'email');
+        $res = User::where('email', $email)->withTrashed()->first();
 
-        return DB::transaction(function () use ($data) {
-            /** @var User $user */
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'email_verified_at' => now(),
-                'password' => Hash::make($data['password']),
-            ]);
+        if ($res === null) {
+            return DB::transaction(function () use ($data) {
+                /** @var User $user */
+                $user = User::create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'email_verified_at' => now(),
+                    'password' => Hash::make($data['password']),
+                ]);
 
-            // Create a new workspace and attach as owner.
-            $workspace = $this->handle($user, $data['workspace_name'], Workspace::ROLE_MEMBER);
-            $newToken = Str::random(32);
-            $apiToken = $this->apiTokensRepo->store(
-                $workspace->id,
-                ['api_token' => $newToken]
-            );
+                // Create a new workspace and attach as owner.
+                $workspace = $this->handle($user, $data['workspace_name'], Workspace::ROLE_MEMBER);
+                $newToken = Str::random(32);
+                $apiToken = $this->apiTokensRepo->store(
+                    $workspace->id,
+                    ['api_token' => $newToken]
+                );
 
-            $settings = [
-                "name" => "SES Traking",
-                "key" => env("SES_SERVICE_KEY"),
-                "secret" => env("SES_SERVICE_SECRET"),
-                "region" => env("SES_SERVICE_REGION"),
-                "configuration_set_name" => env("SES_SERVICE_CONFIGURATION_SET_NAME")
-            ];
+                $settings = [
+                    "name" => "SES Traking",
+                    "key" => env("SES_SERVICE_KEY"),
+                    "secret" => env("SES_SERVICE_SECRET"),
+                    "region" => env("SES_SERVICE_REGION"),
+                    "configuration_set_name" => env("SES_SERVICE_CONFIGURATION_SET_NAME")
+                ];
 
-            $this->emailServiceTenantRepository->store($workspace->id, [
-                'name' => $data['workspace_name'],
-                'type_id' => 1,
-                'settings' => $settings,
-            ]);
+                $this->emailServiceTenantRepository->store($workspace->id, [
+                    'name' => $data['workspace_name'],
+                    'type_id' => 1,
+                    'settings' => $settings,
+                ]);
 
-            $user->workspace = $workspace;
+                $user->workspace = $workspace;
+                $user->token = $apiToken;
+                return $user;
+            });
+        } else {
+            $user = User::withTrashed()->find($res->id)->restore();
+            $user = $this->usersRepository->findBy('email', $email);
+            $user->password = Hash::make($data['password']);
+            $user->save();
+            $workspaces = $this->workspaces->findBy('owner_id', $user->id);
+            $workspaces->name=$data['workspace_name'];
+            $workspaces->save();
+            $apiToken = $this->apiTokensRepo->findBy( $workspaces->id,'workspace_id', $workspaces->id);
+            $user->workspaces = $workspaces;
             $user->token = $apiToken;
+
             return $user;
-        });
+        }
     }
 
     private function handle(User $user, string $workspaceName, ?string $role = null): Workspace
@@ -119,8 +140,8 @@ class WorkspacesController extends Controller
     public function destroy(Request $request)
     {
         $email = Arr::get($request, 'email');
-        $res = User::where('email',$email);
-       $resul =  $res->delete();
+        $res = User::where('email', $email);
+        $resul = $res->delete();
         if ($resul > 0) {
             return [
                 "status" => true,
@@ -130,7 +151,7 @@ class WorkspacesController extends Controller
         } else {
             return [
                 "status" => false,
-                "message" => "Xoá user không thành công",
+                "message" => "User đã xoá.",
                 "user_email" => $email,
                 "error" => "ERROR"
             ];

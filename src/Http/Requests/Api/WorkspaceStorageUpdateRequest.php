@@ -17,13 +17,13 @@ class WorkspaceStorageUpdateRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('workspaces', 'name')
+//                Rule::unique('workspaces', 'name')
             ],
             'email' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('users', 'email')
+//                Rule::unique('users', 'email')
             ],
             'password' => [
                 'required',
@@ -38,6 +38,9 @@ class WorkspaceStorageUpdateRequest extends FormRequest
     {
         return [
             'workspace_name.unique' => __('Workspace đã tồn tại.'),
+            'workspace_name.required' => __('Workspace required.'),
+            'email.required' => __('Email required.'),
+            'password.required' => __('Password required.'),
             'email.unique' => __('Email đã tồn tại.'),
         ];
     }
