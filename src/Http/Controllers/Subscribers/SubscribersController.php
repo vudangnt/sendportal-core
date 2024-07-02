@@ -152,7 +152,6 @@ class SubscribersController extends Controller
     public function destroy($id)
     {
         $subscriber = $this->subscriberRepo->find(Sendportal::currentWorkspaceId(), $id);
-
         $subscriber->delete();
 
         return redirect()->route('sendportal.subscribers.index')->withSuccess('Subscriber deleted');

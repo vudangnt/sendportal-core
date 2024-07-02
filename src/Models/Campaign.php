@@ -107,6 +107,8 @@ class Campaign extends BaseModel
     {
         return $this->belongsToMany(Tag::class, 'sendportal_campaign_tag')->withTimestamps();
     }
+
+
     /**
      * Status of the campaign.
      */

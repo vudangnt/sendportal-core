@@ -72,6 +72,7 @@ class Subscriber extends BaseModel
         static::deleting(
             function (self $subscriber) {
                 $subscriber->tags()->detach();
+                $subscriber->locations()->detach();
                 $subscriber->messages()->each(static function (Message $message) {
                     $message->failures()->delete();
                 });
@@ -85,15 +86,14 @@ class Subscriber extends BaseModel
         return $this->belongsToMany(Tag::class, 'sendportal_tag_subscriber')->withTimestamps();
     }
 
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class, 'sendportal_location_subscriber')->withTimestamps();
+    }
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class)
             ->orderBy('id', 'desc');
-    }
-
-    public function locations(): BelongsToMany
-    {
-        return $this->belongsToMany(Location::class, 'sendportal_location_subscriber')->withTimestamps();
     }
 
     public function getFullNameAttribute(): string
