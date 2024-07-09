@@ -240,10 +240,10 @@ class CampaignsController extends Controller
         $campaign = $this->campaigns->find($workspaceId, $id, ['status']);
 
         if ($campaign->sent) {
-            return redirect()->route('sendportal . campaigns . reports . index', $id);
+            return redirect()->route('sendportal.campaigns.reports.index', $id);
         }
 
-        return view('sendportal::campaigns . status', [
+        return view('sendportal::campaigns.status', [
             'campaign' => $campaign,
             'campaignStats' => $this->campaignStatisticsService->getForCampaign($campaign, $workspaceId),
         ]);
