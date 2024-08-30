@@ -48,7 +48,7 @@ class TagsController extends Controller
 
     public function create(): View
     {
-        $parentTags = Tag::where('parent_id', 0)->get();
+        $parentTags = $this->tagRepository->getQueryBuilder(Sendportal::currentWorkspaceId())->where('parent_id', 0)->get(Sendportal::currentWorkspaceId());
         return view('sendportal::tags.create', compact('parentTags'));
     }
 
