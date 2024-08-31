@@ -65,6 +65,9 @@ class LocationsController extends Controller
      */
     public function store(LocationStoreRequest $request): RedirectResponse
     {
+        $request->validate([
+            'name' => 'required|unique:sendportal_locations,name',
+        ]);
         $data = $request->all();
         $name = Arr::get($request, 'name');
         $slug = Str::slug($name);

@@ -54,7 +54,6 @@ class SubscribersImportController extends Controller
             $path = $request->file('file')->storeAs('imports', $filename, 'local');
 
             $errors = $this->validateCsvContents(Storage::disk('local')->path($path));
-
             if (count($errors->getBags())) {
                 Storage::disk('local')->delete($path);
 
@@ -69,27 +68,40 @@ class SubscribersImportController extends Controller
                 'updated' => 0
             ];
 
-            (new FastExcel)->import(Storage::disk('local')->path($path), function (array $line) use ($request, &$counter) {
-                $data = Arr::only($line, ['id', 'email', 'first_name', 'last_name']);
+            (new FastExcel)->import(Storage::disk('local')->path($path),
+                function (array $line) use ($request, &$counter) {
+                    $keys = explode(';', array_keys($line)[0]);
+                    $values = explode(';', array_values($line)[0]);
 
-                $data['tags'] = $request->get('tags') ?? [];
-                $subscriber = $this->subscriberService->import(Sendportal::currentWorkspaceId(), $data);
+                    // Trim any extra whitespace from the keys and values
+                    $keys = array_map('trim', $keys);
+                    $values = array_map('trim', $values);
 
-                if ($subscriber->wasRecentlyCreated) {
-                    $counter['created']++;
-                } else {
-                    $counter['updated']++;
-                }
-            });
+                    if (count($keys) !== count($values)) {
+                        throw new Exception("Bị lỗi dữ liệu ở hàng thứ " . implode(',', $values));
+                    }
+                    $parsedData = array_combine($keys, $values);
+                    $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
+
+                    $data['tags'] = $request->get('tags') ?? [];
+                    $subscriber = $this->subscriberService->import(Sendportal::currentWorkspaceId(), $data);
+
+                    if ($subscriber->wasRecentlyCreated) {
+                        $counter['created']++;
+                    } else {
+                        $counter['updated']++;
+                    }
+                });
 
             Storage::disk('local')->delete($path);
 
             return redirect()->route('sendportal.subscribers.index')
-                ->with('success', __('Imported :created subscriber(s) and updated :updated subscriber(s) out of :total', [
-                    'created' => $counter['created'],
-                    'updated' => $counter['updated'],
-                    'total' => $counter['created'] + $counter['updated']
-                ]));
+                ->with('success',
+                    __('Imported :created subscriber(s) and updated :updated subscriber(s) out of :total', [
+                        'created' => $counter['created'],
+                        'updated' => $counter['updated'],
+                        'total' => $counter['created'] + $counter['updated']
+                    ]));
         }
 
         return redirect()->route('sendportal.subscribers.index')
@@ -106,12 +118,25 @@ class SubscribersImportController extends Controller
     protected function validateCsvContents(string $path): ViewErrorBag
     {
         $errors = new ViewErrorBag();
-
         $row = 1;
-
         (new FastExcel)->import($path, function (array $line) use ($errors, &$row) {
-            $data = Arr::only($line, ['id', 'email', 'first_name', 'last_name']);
 
+
+// Split the keys and values by the semicolon delimiter
+            $keys = explode(';', array_keys($line)[0]);
+            $values = explode(';', array_values($line)[0]);
+
+            // Trim any extra whitespace from the keys and values
+            $keys = array_map('trim', $keys);
+            $values = array_map('trim', $values);
+
+// Debugging: Check the length of keys and values
+            if (count($keys) !== count($values)) {
+                throw new Exception("Bị lỗi dữ liệu ở hàng thứ " . $row);
+            }
+// Combine them into an associative array
+            $parsedData = array_combine($keys, $values);
+            $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
             try {
                 $this->validateData($data);
             } catch (ValidationException $e) {
@@ -134,7 +159,6 @@ class SubscribersImportController extends Controller
             'id' => 'integer',
             'email' => 'required|email:filter',
         ]);
-
         if ($validator->fails()) {
             throw new ValidationException($validator);
         }
