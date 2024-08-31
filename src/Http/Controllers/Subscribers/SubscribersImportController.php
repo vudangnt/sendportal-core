@@ -70,6 +70,7 @@ class SubscribersImportController extends Controller
 
             (new FastExcel)->import(Storage::disk('local')->path($path),
                 function (array $line) use ($request, &$counter) {
+
                     $keys = explode(';', array_keys($line)[0]);
                     $values = explode(';', array_values($line)[0]);
 
@@ -82,6 +83,7 @@ class SubscribersImportController extends Controller
                     }
                     $parsedData = array_combine($keys, $values);
                     $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
+                    $data = array_map('utf8_encode', $data);
 
                     $data['tags'] = $request->get('tags') ?? [];
                     $subscriber = $this->subscriberService->import(Sendportal::currentWorkspaceId(), $data);

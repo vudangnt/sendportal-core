@@ -63,6 +63,7 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
      */
     public function update($workspaceId, $id, array $data)
     {
+
         $this->checkTenantData($data);
 
         $instance = $this->find($workspaceId, $id);

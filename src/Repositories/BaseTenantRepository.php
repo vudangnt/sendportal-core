@@ -269,7 +269,6 @@ abstract class BaseTenantRepository implements BaseTenantInterface
     protected function executeSave($workspaceId, $instance, array $data)
     {
         $data = $this->setBooleanFields($instance, $data);
-
         $instance->fill($data);
         $instance->{$this->getTenantKey()} = $workspaceId;
         $instance->save();
