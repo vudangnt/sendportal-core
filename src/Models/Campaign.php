@@ -108,6 +108,14 @@ class Campaign extends BaseModel
         return $this->belongsToMany(Tag::class, 'sendportal_campaign_tag')->withTimestamps();
     }
 
+    /**
+     * Tags this campaign was sent to.
+     */
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class, 'sendportal_campaign_location')->withTimestamps();
+    }
+
 
     /**
      * Status of the campaign.
@@ -257,7 +265,7 @@ class Campaign extends BaseModel
     public function getMergedContentAttribute(): ?string
     {
         if ($this->template_id) {
-            return str_replace(['{{content}}', '{{ content }}'], $this->content??'', $this->template->content);
+            return str_replace(['{{content}}', '{{ content }}'], $this->content ?? '', $this->template->content);
         }
 
         return $this->content;
@@ -381,7 +389,7 @@ class Campaign extends BaseModel
      */
     public function allDraftsCreated(): bool
     {
-        if (! $this->save_as_draft) {
+        if (!$this->save_as_draft) {
             return true;
         }
 

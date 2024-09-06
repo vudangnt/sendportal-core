@@ -38,6 +38,13 @@ class Location extends BaseModel
         return $this->belongsToMany(Subscriber::class, 'sendportal_location_subscriber')->withTimestamps();
     }
 
+
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'sendportal_campaign_location');
+    }
+
+
     /**
      * Active subscribers in this tag.
      */

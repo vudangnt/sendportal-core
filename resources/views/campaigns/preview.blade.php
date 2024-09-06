@@ -150,7 +150,7 @@
                             @forelse($locations as $location)
                                 @if ( $location['parent_id'] == 0)
                                     <div class="checkbox tag_{{$location['id']}}">
-                                        <input id="location-{{ $location['id'] }}" class="parent-checkbox" name="tags[]" type="checkbox" value="{{ $location['id'] }}">
+                                        <input id="location-{{ $location['id'] }}" class="parent-checkbox" name="locations[]" type="checkbox" value="{{ $location['id'] }}">
                                         <label for="location-{{ $location['id'] }}">
                                             <span class="parent-tag" data-parent="{{ $location['id'] }}">{{ $location['name'] }}
                                             ({{ $location['active_subscribers_count'] }} {{ __('subscribers') }} )</span>
@@ -159,7 +159,7 @@
                                         @if ($location['child_count']>0)
                                             @foreach($location['child'] as $locationChild)
                                                 <div class="checkbox pl-3 child_of_{{$location['id']}}" style="display: none;">
-                                                    <input class="child-checkbox " name="tags[]" type="checkbox" value="{{ $locationChild['id'] }}">
+                                                    <input class="child-checkbox " name="locations[]" type="checkbox" value="{{ $locationChild['id'] }}">
                                                     <label>
                                                         {{ $locationChild['name'] }}
                                                         ({{ $locationChild['active_subscribers_count'] }} {{ __('subscribers') }} )

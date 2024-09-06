@@ -55,6 +55,7 @@ class CampaignDispatchController extends Controller
         ]);
 
         $campaign->tags()->sync($request->get('tags'));
+        $campaign->locations()->sync($request->get('locations'));
 
         if ($this->quotaService->exceedsQuota($campaign->email_service, $campaign->unsent_count)) {
             return redirect()->route('sendportal.campaigns.edit', $id)

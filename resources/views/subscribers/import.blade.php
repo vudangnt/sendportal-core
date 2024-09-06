@@ -27,10 +27,10 @@
     @endif
 
     @component('sendportal::layouts.partials.card')
-        @slot('cardHeader', __('Import via CSV file'))
+        @slot('cardHeader', __('Import via CSV, XSLX file'))
 
         @slot('cardBody')
-            <p><b>{{ __('CSV format') }}:</b> {{ __('Format your CSV the same way as the example below (with the first title row). Use the ID or email columns if you want to update a Subscriber instead of creating it.') }}</p>
+            <p><b>{{ __('CSV, XSLX format') }}:</b> {{ __('Format your CSV, XSLX the same way as the example below (with the first title row). Use the ID or email columns if you want to update a Subscriber instead of creating it.') }}</p>
 
             <div class="table-responsive">
                 <table class="table table-bordered table-condensed table-striped">

@@ -2,6 +2,7 @@
 
 namespace Sendportal\Base\Http\Controllers\Subscribers;
 
+use App\Imports\UsersImport;
 use Box\Spout\Common\Exception\IOException;
 use Box\Spout\Common\Exception\UnsupportedTypeException;
 use Box\Spout\Reader\Exception\ReaderNotOpenedException;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
@@ -49,51 +51,36 @@ class SubscribersImportController extends Controller
     public function store(SubscribersImportRequest $request): RedirectResponse
     {
         if ($request->file('file')->isValid()) {
-            $filename = Str::random(16) . '.csv';
 
+            $filename = Str::random(16) . '.xslx';
             $path = $request->file('file')->storeAs('imports', $filename, 'local');
 
-            $errors = $this->validateCsvContents(Storage::disk('local')->path($path));
-            if (count($errors->getBags())) {
-                Storage::disk('local')->delete($path);
-
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', __('The provided file contains errors'))
-                    ->with('errors', $errors);
-            }
-
+            $array = (new UsersImport)->toArray(Storage::disk('local')->path($path));
+            $data = [];
             $counter = [
                 'created' => 0,
                 'updated' => 0
             ];
+            foreach ($array[0] as $index => $row) {
+                if ($index == 0) {
+                    continue;
+                }
+                $parsedData = [
+                    'id' => $row[0],
+                    'email' => $row[1],
+                    'first_name' => $row[2],
+                    'last_name' => $row[3]
+                ];
 
-            (new FastExcel)->import(Storage::disk('local')->path($path),
-                function (array $line) use ($request, &$counter) {
-
-                    $keys = explode(';', array_keys($line)[0]);
-                    $values = explode(';', array_values($line)[0]);
-
-                    // Trim any extra whitespace from the keys and values
-                    $keys = array_map('trim', $keys);
-                    $values = array_map('trim', $values);
-
-                    if (count($keys) !== count($values)) {
-                        throw new Exception("Bị lỗi dữ liệu ở hàng thứ " . implode(',', $values));
-                    }
-                    $parsedData = array_combine($keys, $values);
-                    $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
-                    $data = array_map('utf8_encode', $data);
-
-                    $data['tags'] = $request->get('tags') ?? [];
-                    $subscriber = $this->subscriberService->import(Sendportal::currentWorkspaceId(), $data);
-
-                    if ($subscriber->wasRecentlyCreated) {
-                        $counter['created']++;
-                    } else {
-                        $counter['updated']++;
-                    }
-                });
+                $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
+                $data['tags'] = $request->get('tags') ?? [];
+                $subscriber = $this->subscriberService->import(Sendportal::currentWorkspaceId(), $data);
+                if ($subscriber->wasRecentlyCreated) {
+                    $counter['created']++;
+                } else {
+                    $counter['updated']++;
+                }
+            }
 
             Storage::disk('local')->delete($path);
 

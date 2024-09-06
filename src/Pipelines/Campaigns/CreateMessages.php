@@ -2,6 +2,7 @@
 
 namespace Sendportal\Base\Pipelines\Campaigns;
 
+use Illuminate\Support\Facades\Log;
 use Sendportal\Base\Events\MessageDispatchEvent;
 use Sendportal\Base\Models\Campaign;
 use Sendportal\Base\Models\Message;
@@ -16,6 +17,7 @@ class CreateMessages
      * @var array
      */
     protected $sentItems = [];
+    protected $locationIds = [];
 
     /**
      * CreateMessages handler
@@ -27,6 +29,10 @@ class CreateMessages
      */
     public function handle(Campaign $campaign, $next)
     {
+        foreach ($campaign->locations as $location) {
+            $this->locationIds[] = $location->id;
+        }
+
         if ($campaign->send_to_all) {
             $this->handleAllSubscribers($campaign);
         } else {
@@ -73,7 +79,7 @@ class CreateMessages
      */
     protected function handleTag(Campaign $campaign, Tag $tag): void
     {
-        \Log::info('- Handling Campaign Tag id='.$tag->id);
+        \Log::info('- Handling Campaign Tag id=' . $tag->id);
 
         $tag->subscribers()->whereNull('unsubscribed_at')->chunkById(1000, function ($subscribers) use ($campaign) {
             $this->dispatchToSubscriber($campaign, $subscribers);
@@ -91,7 +97,7 @@ class CreateMessages
         \Log::info('- Number of subscribers in this chunk: ' . count($subscribers));
 
         foreach ($subscribers as $subscriber) {
-            if (! $this->canSendToSubscriber($campaign->id, $subscriber->id)) {
+            if (!$this->canSendToSubscriber($campaign->id, $subscriber->id, $subscriber)) {
                 continue;
             }
 
@@ -101,20 +107,32 @@ class CreateMessages
 
     /**
      * Check if we can send to this subscriber
-     * @todo check how this would impact on memory with 200k subscribers?
-     *
      * @param int $campaignId
      * @param int $subscriberId
      *
      * @return bool
+     * @todo check how this would impact on memory with 200k subscribers?
+     *
      */
-    protected function canSendToSubscriber($campaignId, $subscriberId): bool
+    protected function canSendToSubscriber($campaignId, $subscriberId, $subscriber): bool
     {
         $key = $campaignId . '-' . $subscriberId;
 
-        if (in_array($key, $this->sentItems, true)) {
-            \Log::info('- Subscriber has already been sent a message campaign_id=' . $campaignId . ' subscriber_id=' . $subscriberId);
+        $subscriberLocation = $subscriber->locations->pluck('id')->toArray();
 
+        $phanTuChung = array_intersect($subscriberLocation, $this->locationIds);
+        if (!empty($phanTuChung)) {
+//            Log::info("Mảng A có các phần tử tồn tại trong mảng B: ",
+//                ["subscriberLocation" => $subscriberLocation, "locationid" => $this->locationIds]);
+        } else {
+//            Log::info("Không có phần tử nào từ mảng A nằm trong mảng B. ",
+//                ["subscriberLocation" => $subscriberLocation, "locationid" => $this->locationIds]
+//            );
+            return false;
+        }
+
+        if (in_array($key, $this->sentItems, true)) {
+            Log::info('- Subscriber has already been sent a message campaign_id=' . $campaignId . ' subscriber_id=' . $subscriberId);
             return false;
         }
 
