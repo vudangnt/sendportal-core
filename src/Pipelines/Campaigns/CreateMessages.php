@@ -122,12 +122,12 @@ class CreateMessages
 
         $phanTuChung = array_intersect($subscriberLocation, $this->locationIds);
         if (!empty($phanTuChung)) {
-//            Log::info("Mảng A có các phần tử tồn tại trong mảng B: ",
-//                ["subscriberLocation" => $subscriberLocation, "locationid" => $this->locationIds]);
+            Log::info("Mảng A có các phần tử tồn tại trong mảng B: ",
+                ["subscriberLocation" => $subscriberLocation, "locationid" => $this->locationIds]);
         } else {
-//            Log::info("Không có phần tử nào từ mảng A nằm trong mảng B. ",
-//                ["subscriberLocation" => $subscriberLocation, "locationid" => $this->locationIds]
-//            );
+            Log::info("Không có phần tử nào từ mảng A nằm trong mảng B. ",
+                ["subscriberLocation" => $subscriberLocation, "locationid" => $this->locationIds]
+            );
             return false;
         }
 
