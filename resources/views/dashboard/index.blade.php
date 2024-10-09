@@ -7,6 +7,25 @@
 @endsection
 
 @section('content')
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header card-header-accent">
+                    <div class="card-header-inner">
+                        {{ __('Total Subscribers') }} :  {{$countActive}}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="width: 99%;">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">

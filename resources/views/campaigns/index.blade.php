@@ -25,6 +25,7 @@
                 <tr>
                     <th>{{ __('Name') }}</th>
                     @if (request()->routeIs('sendportal.campaigns.sent'))
+                        <th>{{ __('Target Audience') }}</th>
                         <th>{{ __('Sent') }}</th>
                         <th>{{ __('Opened') }}</th>
                         <th>{{ __('Clicked') }}</th>
@@ -47,20 +48,31 @@
                             @endif
                         </td>
                         @if (request()->routeIs('sendportal.campaigns.sent'))
+                            <td>
+                                Tags:
+                                {{ implode(', ', $campaign->tags->pluck('name')->toArray()) }}
+                                <br/>
+                                Locations:
+                                {{ implode(', ', $campaign->locations->pluck('name')->toArray()) }}
+                            </td>
+
                             <td>{{ $campaignStats[$campaign->id]['counts']['sent'] }}</td>
                             <td>{{ number_format($campaignStats[$campaign->id]['ratios']['open'] * 100, 1) . '%' }}</td>
                             <td>
                                 {{ number_format($campaignStats[$campaign->id]['ratios']['click'] * 100, 1) . '%' }}
                             </td>
                         @endif
-                        <td><span title="{{ $campaign->created_at }}">{{ $campaign->created_at->diffForHumans() }}</span></td>
+                        <td><span
+                                title="{{ $campaign->created_at }}">{{ $campaign->created_at->diffForHumans() }}</span>
+                        </td>
                         <td>
                             @include('sendportal::campaigns.partials.status')
                         </td>
                         <td>
                             <div class="dropdown">
                                 <button class="btn btn-light btn-sm btn-wide" type="button" id="dropdownMenuButton"
-                                        data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+                                        data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true"
+                                        aria-expanded="false">
                                     <i class="fas fa-ellipsis-h"></i>
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
