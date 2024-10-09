@@ -18,6 +18,41 @@
         @endslot
     @endcomponent
 
+    <style>
+        .max-width-200 {
+            max-width: 200px;
+            width: auto;       /* Let it adjust based on content */
+            word-wrap: break-word; /* Ensure long words break to fit within the width */
+        }
+
+        .text-container {
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tags-content {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap; /* Prevent text from wrapping */
+        }
+
+        .locations-content {
+            display: block; /* Always show Locations content */
+        }
+
+        .text-container.expanded .tags-content {
+            white-space: normal; /* Allow full text to show when expanded */
+        }
+        .text-toggle-button:hover {
+            text-decoration: underline; /* Adds underline effect on hover */
+            cursor: pointer; /* Shows pointer cursor on hover */
+        }
+        .text-container.expanded .text-toggle-button {
+            display: none; /* Hide the button when expanded */
+        }
+
+    </style>
     <div class="card">
         <div class="card-table table-responsive">
             <table class="table">
@@ -48,14 +83,19 @@
                             @endif
                         </td>
                         @if (request()->routeIs('sendportal.campaigns.sent'))
-                            <td>
-                                Tags:
-                                {{ implode(', ', $campaign->tags->pluck('name')->toArray()) }}
-                                <br/>
-                                Locations:
-                                {{ implode(', ', $campaign->locations->pluck('name')->toArray()) }}
+                            <td class="max-width-200">
+                                <div class="text-container">
+                                    <span class="locations-content">
+                                        Locations: {{ implode(', ', $campaign->locations->pluck('name')->toArray()) }}
+                                    </span>
+                                    <span class="tags-content">
+                                        Tags: {{ implode(', ', $campaign->tags->pluck('name')->toArray()) }}<br/>
+                                    </span>
+                                </div>
+                                <span class="btn-link text-toggle-button">
+                                    Xem thêm
+                                </span>
                             </td>
-
                             <td>{{ $campaignStats[$campaign->id]['counts']['sent'] }}</td>
                             <td>{{ number_format($campaignStats[$campaign->id]['ratios']['open'] * 100, 1) . '%' }}</td>
                             <td>
@@ -131,5 +171,19 @@
     </div>
 
     @include('sendportal::layouts.partials.pagination', ['records' => $campaigns])
+    <script>
+        document.querySelectorAll('.text-toggle-button').forEach(button => {
+            button.addEventListener('click', function () {
+                const container = this.closest('td').querySelector('.text-container');
+                container.classList.toggle('expanded');
 
+                if (container.classList.contains('expanded')) {
+                    this.textContent = 'Thu nhỏ'; // Change button text to "Show Less"
+                } else {
+                    this.textContent = 'Xem thêm'; // Change back to "Show More"
+                }
+            });
+        });
+
+    </script>
 @endsection
