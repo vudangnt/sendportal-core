@@ -23,4 +23,9 @@
         <a class="nav-link {{ request()->route()->named('sendportal.campaigns.reports.unsubscribes') ? 'active'  : '' }}"
            href="{{ route('sendportal.campaigns.reports.unsubscribes', $campaign->id) }}">{{ __('Unsubscribes') }}</a>
     </li>
+
+    <li class="nav-item">
+        <a class="nav-link {{ request()->route()->named('sendportal.campaigns.reports.template') ? 'active'  : '' }}"
+           href="{{ route('sendportal.campaigns.reports.template', $campaign->id) }}">{{ __('Template') }}</a>
+    </li>
 </ul>

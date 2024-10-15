@@ -87,6 +87,10 @@ class WebRoutes
                         '{id}/report/bounces',
                         'CampaignReportsController@bounces'
                     )->name('reports.bounces');
+                    $campaignRouter->get(
+                        '{id}/report/template',
+                        'CampaignReportsController@template'
+                    )->name('reports.template');
                 });
 
                 // Messages.

@@ -50,7 +50,8 @@ class CampaignReportsController extends Controller
             return redirect()->route('sendportal.campaigns.status', $id);
         }
 
-        $presenter = new CampaignReportPresenter($campaign, Sendportal::currentWorkspaceId(), (int) $request->get('interval', 24));
+        $presenter = new CampaignReportPresenter($campaign, Sendportal::currentWorkspaceId(),
+            (int)$request->get('interval', 24));
         $presenterData = $presenter->generate();
 
         $data = [
@@ -179,5 +180,13 @@ class CampaignReportsController extends Controller
         $messages = $this->messageRepo->unsubscribes(Sendportal::currentWorkspaceId(), Campaign::class, $id);
 
         return view('sendportal::campaigns.reports.unsubscribes', compact('campaign', 'messages'));
+    }
+
+    public function template(int $id)
+    {
+        $campaign = $this->campaignRepo->find(Sendportal::currentWorkspaceId(), $id);
+        $template = $campaign->template;
+
+        return view('sendportal::campaigns.reports.templates', compact('campaign', 'template'));
     }
 }
