@@ -50,6 +50,10 @@ class SubscribersImportController extends Controller
      */
     public function store(SubscribersImportRequest $request): RedirectResponse
     {
+        // Remove memory and execution time limits
+        ini_set('memory_limit', '-1');          // -1 sets memory limit to unlimited
+        ini_set('max_execution_time', '0');     // 0 sets execution time to unlimited
+
         if ($request->file('file')->isValid()) {
 
             $filename = Str::random(16) . '.xslx';
@@ -62,14 +66,14 @@ class SubscribersImportController extends Controller
                 'updated' => 0
             ];
             foreach ($array[0] as $index => $row) {
-                if ($index == 0) {
+                if (empty($row['email'])){
                     continue;
                 }
                 $parsedData = [
-                    'id' => $row[0],
-                    'email' => $row[1],
-                    'first_name' => $row[2],
-                    'last_name' => $row[3]
+                    'id' => $row['id'],
+                    'email' => $row['email'],
+                    'first_name' => $row['first_name'],
+                    'last_name' => $row['last_name']
                 ];
 
                 $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
