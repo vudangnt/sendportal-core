@@ -126,14 +126,13 @@ class WebRoutes
                 $appRouter->resource('tags', 'Tags\TagsController')->except(['show']);
 
                 // Templates.
-                $appRouter->resource('templates', 'TemplatesController')->except(['show']);
                 $appRouter->resource('templates', 'TemplatesController');
 
                 $appRouter->name('templates.')->prefix('templates')->group(static function (
                     Router $templateRouter
                 ) {
 
-                    $templateRouter->get('/import/import', [TemplatesController::class, 'showImportForm'])->name('import');
+                    $templateRouter->get('import/import', [TemplatesController::class, 'showImportForm'])->name('import');
                     $templateRouter->post('import/process', [TemplatesController::class, 'importJson'])->name('import.process');
 
                     $templateRouter->get('export/{id}', [TemplatesController::class, 'exportJson'])->name('export');
@@ -150,6 +149,7 @@ class WebRoutes
                 });
                 $appRouter->resource('subscribers', 'Subscribers\SubscribersController');
 
+                $appRouter->resource('templates', 'TemplatesController')->except(['show']);
 
             });
         };
