@@ -134,7 +134,7 @@ class WebRoutes
                 ) {
 
                     $templateRouter->get('/import/import', [TemplatesController::class, 'showImportForm'])->name('import');
-                    $templateRouter->post('/import', [TemplatesController::class, 'importJson'])->name('import.process');
+                    $templateRouter->post('import/process', [TemplatesController::class, 'importJson'])->name('import.process');
 
                     $templateRouter->get('export/{id}', [TemplatesController::class, 'exportJson'])->name('export');
 

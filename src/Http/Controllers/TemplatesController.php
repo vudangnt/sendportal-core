@@ -128,6 +128,12 @@ class TemplatesController extends Controller
         return view('sendportal::templates.edit', compact('template'));
     }
 
+    public function show(int $id): View
+    {
+        $template = $this->templates->find(Sendportal::currentWorkspaceId(), $id);
+        return view('sendportal::templates.edit', compact('template'));
+    }
+
     /**
      * @throws Exception
      */
