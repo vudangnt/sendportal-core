@@ -49,6 +49,14 @@ class TemplateService
     {
         $template = $this->templates->find($workspaceId, $templateId);
 
+        if ($template->isInUse()) {
+            $data = [
+                'status' => 'inactive'
+            ];
+            return $this->templates->update($workspaceId, $templateId, $data);
+
+        }
+
 //        throw_if($template->isInUse(), ValidationException::withMessages([
 //            'template' => __('Cannot delete a template that has been used.')
 //        ]));

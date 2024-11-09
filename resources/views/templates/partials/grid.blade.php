@@ -13,6 +13,10 @@
                                 @method('DELETE')
                                 <a href="{{ route('sendportal.templates.duplicate', $template->id) }}"
                                    class="btn btn-xs btn-light">{{ __('Dublicate') }}</a>
+                                <a href="{{ route('sendportal.templates.export', $template->id) }}"
+                                   class="btn btn-xs btn-light">
+                                    Export Template
+                                </a>
                                 <a href="{{ route('sendportal.templates.edit', $template->id) }}"
                                    class="btn btn-xs btn-light">{{ __('Edit') }}</a>
                                 <button type="submit" class="btn btn-xs btn-light">{{ __('Delete') }}</button>

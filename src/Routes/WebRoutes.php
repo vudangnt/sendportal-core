@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sendportal\Base\Routes;
 
 use Illuminate\Routing\Router;
+use Sendportal\Base\Http\Controllers\TemplatesController;
 
 class WebRoutes
 {
@@ -123,10 +124,20 @@ class WebRoutes
 
                 // Tags.
                 $appRouter->resource('tags', 'Tags\TagsController')->except(['show']);
+
+                // Templates.
+                $appRouter->resource('templates', 'TemplatesController')->except(['show']);
                 $appRouter->resource('templates', 'TemplatesController');
+
                 $appRouter->name('templates.')->prefix('templates')->group(static function (
                     Router $templateRouter
                 ) {
+
+                    $templateRouter->get('/import/import', [TemplatesController::class, 'showImportForm'])->name('import');
+                    $templateRouter->post('/import', [TemplatesController::class, 'importJson'])->name('import.process');
+
+                    $templateRouter->get('export/{id}', [TemplatesController::class, 'exportJson'])->name('export');
+
                     $templateRouter->get('{id}/duplicate', 'TemplatesController@duplicate')->name('duplicate');
                 });
                 // Subscribers.
@@ -139,8 +150,7 @@ class WebRoutes
                 });
                 $appRouter->resource('subscribers', 'Subscribers\SubscribersController');
 
-                // Templates.
-                $appRouter->resource('templates', 'TemplatesController')->except(['show']);
+
             });
         };
     }
