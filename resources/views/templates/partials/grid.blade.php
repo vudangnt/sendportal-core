@@ -19,7 +19,7 @@
                                 </a>
                                 <a href="{{ route('sendportal.templates.edit', $template->id) }}"
                                    class="btn btn-xs btn-light">{{ __('Edit') }}</a>
-                                <button type="submit" class="btn btn-xs btn-light">{{ __('Delete') }}</button>
+                                <button type="submit" class="btn btn-xs btn-danger">{{ __('Delete') }}</button>
                             </form>
                         @endif
                     </div>
