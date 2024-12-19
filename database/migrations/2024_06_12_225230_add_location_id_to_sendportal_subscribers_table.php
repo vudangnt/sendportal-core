@@ -14,7 +14,7 @@ class AddLocationIdToSendportalSubscribersTable extends Migration
     public function up()
     {
         Schema::table('sendportal_subscribers', function (Blueprint $table) {
-            $table->unsignedInteger('location_id')->after('unsubscribe_event_id')->nullable();
+            $table->unsignedBigInteger('location_id')->after('unsubscribe_event_id')->nullable();
             $table->foreign('location_id')->references('id')->on('sendportal_locations');
         });
     }
