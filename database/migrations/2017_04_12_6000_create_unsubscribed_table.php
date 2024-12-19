@@ -16,7 +16,7 @@ class CreateUnsubscribedTable extends UpgradeMigration
     public function up()
     {
         Schema::create('sendportal_unsubscribe_event_types', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('name');
         });
 

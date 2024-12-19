@@ -17,7 +17,7 @@ class CreateSegmentSubscriberTable extends UpgradeMigration
         $subscribers = $this->getTableName('subscribers');
 
         Schema::create('sendportal_segment_subscriber', function (Blueprint $table) use ($segments, $subscribers) {
-            $table->increments('id');
+            $table->id();
             $table->unsignedInteger('segment_id');
             $table->unsignedInteger('subscriber_id');
             $table->timestamps();

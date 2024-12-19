@@ -17,7 +17,7 @@ class CreateCampaignSegmentTable extends UpgradeMigration
         $campaigns = $this->getTableName('campaigns');
 
         Schema::create('sendportal_campaign_segment', function (Blueprint $table) use ($campaigns, $segments) {
-            $table->increments('id');
+            $table->id();
             $table->unsignedInteger('segment_id');
             $table->unsignedInteger('campaign_id');
             $table->timestamps();

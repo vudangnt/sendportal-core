@@ -16,7 +16,7 @@ class CreateEmailServiceTables extends UpgradeMigration
     public function up()
     {
         Schema::create('sendportal_email_service_types', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('name');
             $table->timestamps();
         });
@@ -24,7 +24,7 @@ class CreateEmailServiceTables extends UpgradeMigration
         $this->seedEmailServiceTypes();
 
         Schema::create('sendportal_email_services', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->unsignedInteger('workspace_id')->index();
             $table->string('name')->nullable();
             $table->unsignedInteger('type_id');

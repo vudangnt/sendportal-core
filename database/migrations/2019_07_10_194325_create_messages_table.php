@@ -14,7 +14,7 @@ class CreateMessagesTable extends UpgradeMigration
     public function up()
     {
         Schema::create('sendportal_messages', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->uuid('hash')->unique();
             $table->unsignedInteger('workspace_id')->index();
             $table->unsignedInteger('subscriber_id')->index();

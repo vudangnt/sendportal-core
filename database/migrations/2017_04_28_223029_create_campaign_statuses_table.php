@@ -14,7 +14,7 @@ class CreateCampaignStatusesTable extends UpgradeMigration
     public function up()
     {
         Schema::create('sendportal_campaign_statuses', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('name');
         });
 
