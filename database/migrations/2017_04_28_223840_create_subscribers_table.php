@@ -17,14 +17,14 @@ class CreateSubscribersTable extends UpgradeMigration
 
         Schema::create('sendportal_subscribers', function (Blueprint $table) use ($unsubscribe_event_types) {
             $table->id();
-            $table->unsignedInteger('workspace_id')->index();
+            $table->unsignedBigInteger('workspace_id')->index();
             $table->uuid('hash')->unique();
             $table->string('email')->index();
             $table->string('first_name')->nullable();
             $table->string('last_name')->nullable();
             $table->jsonb('meta')->nullable();
             $table->timestamp('unsubscribed_at')->nullable()->index();
-            $table->unsignedInteger('unsubscribe_event_id')->nullable();
+            $table->unsignedBigInteger('unsubscribe_event_id')->nullable();
             $table->timestamps();
 
             $table->index('created_at');

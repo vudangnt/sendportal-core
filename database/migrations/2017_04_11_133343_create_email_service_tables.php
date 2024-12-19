@@ -25,9 +25,9 @@ class CreateEmailServiceTables extends UpgradeMigration
 
         Schema::create('sendportal_email_services', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('workspace_id')->index();
+            $table->unsignedBigInteger('workspace_id')->index();
             $table->string('name')->nullable();
-            $table->unsignedInteger('type_id');
+            $table->unsignedBigInteger('type_id');
             $table->mediumText('settings');
             $table->timestamps();
 

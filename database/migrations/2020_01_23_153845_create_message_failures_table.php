@@ -17,7 +17,7 @@ class CreateMessageFailuresTable extends UpgradeMigration
 
         Schema::create('sendportal_message_failures', function (Blueprint $table) use ($messages) {
             $table->bigIncrements('id');
-            $table->unsignedInteger('message_id');
+            $table->unsignedBigInteger('message_id');
             $table->string('severity')->nullable()->default(null);
             $table->mediumText('description')->nullable()->default(null);
             $table->timestamp('failed_at')->nullable()->default(null);

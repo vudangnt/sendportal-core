@@ -19,11 +19,11 @@ class CreateCampaignsTable extends UpgradeMigration
 
         Schema::create('sendportal_campaigns', function (Blueprint $table) use ($campaign_statuses, $templates, $email_services) {
             $table->id();
-            $table->unsignedInteger('workspace_id')->index();
+            $table->unsignedBigInteger('workspace_id')->index();
             $table->string('name');
-            $table->unsignedInteger('status_id')->default(1);
-            $table->unsignedInteger('template_id')->nullable();
-            $table->unsignedInteger('email_service_id')->nullable();
+            $table->unsignedBigInteger('status_id')->default(1);
+            $table->unsignedBigInteger('template_id')->nullable();
+            $table->unsignedBigInteger('email_service_id')->nullable();
             $table->string('subject')->nullable();
             $table->text('content')->nullable();
             $table->string('from_name')->nullable();

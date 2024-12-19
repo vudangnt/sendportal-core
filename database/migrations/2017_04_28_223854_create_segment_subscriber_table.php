@@ -18,8 +18,8 @@ class CreateSegmentSubscriberTable extends UpgradeMigration
 
         Schema::create('sendportal_segment_subscriber', function (Blueprint $table) use ($segments, $subscribers) {
             $table->id();
-            $table->unsignedInteger('segment_id');
-            $table->unsignedInteger('subscriber_id');
+            $table->unsignedBigInteger('segment_id');
+            $table->unsignedBigInteger('subscriber_id');
             $table->timestamps();
 
             $table->foreign('segment_id')->references('id')->on($segments);

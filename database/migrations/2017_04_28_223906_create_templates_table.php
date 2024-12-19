@@ -15,7 +15,7 @@ class CreateTemplatesTable extends UpgradeMigration
     {
         Schema::create('sendportal_templates', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('workspace_id')->index();
+            $table->unsignedBigInteger('workspace_id')->index();
             $table->string('name');
             $table->text('content')->nullable();
             $table->timestamps();
