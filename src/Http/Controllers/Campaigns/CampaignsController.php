@@ -101,6 +101,8 @@ class CampaignsController extends Controller
         $emailServices = $this->emailServices->all(Sendportal::currentWorkspaceId(), 'id', ['type'])
             ->map(static function (EmailService $emailService) {
                 $emailService->formatted_name = "{$emailService->name} ({$emailService->type->name})";
+                $settings =  $emailService->settings;
+                $emailService->domain =  $settings['domain'] ?? null;
                 return $emailService;
             });
 
@@ -159,9 +161,19 @@ class CampaignsController extends Controller
         $emailServices = $this->emailServices->all($workspaceId, 'id', ['type'])
             ->map(static function (EmailService $emailService) {
                 $emailService->formatted_name = "{$emailService->name} ({$emailService->type->name})";
+                $settings =  $emailService->settings;
+                $emailService->domain =  $settings['domain'] ?? null;
                 return $emailService;
             });
         $templates = [null => '- None -'] + $this->templates->pluck($workspaceId);
+
+        $email = $campaign->from_email ?? old('from_email');
+        $emailParts = explode('@', $email); // Tách email thành 2 phần
+        $username = $emailParts[0] ?? ''; // Lấy phần username
+        $domain = $emailParts[1] ?? ''; // Lấy phần domain
+
+        $campaign->from_email = $username;
+        $campaign->from_domain = $domain;
 
         return view('sendportal::campaigns.edit', compact('campaign', 'emailServices', 'templates'));
     }
