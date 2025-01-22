@@ -28,7 +28,7 @@ class SubscriptionsController extends Controller
     public function unsubscribe(string $messageHash): View
     {
         if (!preg_match('/^[a-f0-9-]{36}$/i', $messageHash)) {
-            abort(400, 'Invalid message hash format');
+            abort(403, 'Invalid message hash format');
         }
 
         $message = Message::with('subscriber')->where('hash', $messageHash)->first();
