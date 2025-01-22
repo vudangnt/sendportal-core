@@ -32,6 +32,9 @@ class SubscriptionsController extends Controller
         }
 
         $message = Message::with('subscriber')->where('hash', $messageHash)->first();
+        if (!$message) {
+            abort(403, 'Message not found'); // 403 Forbidden
+        }
 
         return view('sendportal::subscriptions.unsubscribe', compact('message'));
     }
