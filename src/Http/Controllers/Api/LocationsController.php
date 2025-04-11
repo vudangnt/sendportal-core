@@ -13,19 +13,19 @@ use Sendportal\Base\Http\Requests\Api\LocationStoreRequest;
 use Sendportal\Base\Http\Requests\Api\TagUpdateRequest;
 use Sendportal\Base\Http\Resources\Location as LocationResource;
 use Sendportal\Base\Repositories\LocationTenantRepository;
-use Sendportal\Base\Services\Locations\ApiLocationservice;
+use Sendportal\Base\Services\Locations\ApiLocationService;
 
 class LocationsController extends Controller
 {
     /** @var LocationTenantRepository */
     private $locations;
 
-    /** @var Apilocationservice */
+    /** @var ApiLocationService */
     private $apiService;
 
     public function __construct(
         LocationTenantRepository $locations,
-        ApiLocationservice $apiService
+        ApiLocationService $apiService
     ) {
         $this->locations = $locations;
         $this->apiService = $apiService;
