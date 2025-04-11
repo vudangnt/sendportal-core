@@ -23,7 +23,7 @@
                 <tr>
                     <th>{{ __('Name') }}</th>
                     <th>{{ __('Slug') }}</th>
-                    <th>{{ __('Tupe') }}</th>
+                    <th>{{ __('Type') }}</th>
                     <th>{{ __('Subscribers') }}</th>
                     <th>{{ __('Actions') }}</th>
                 </tr>
