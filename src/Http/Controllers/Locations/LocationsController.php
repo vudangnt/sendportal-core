@@ -16,7 +16,7 @@ use Sendportal\Base\Http\Requests\LocationUpdateRequest;
 use Sendportal\Base\Models\Location;
 use Sendportal\Base\Repositories\LocationTenantRepository;
 use Illuminate\Validation\Rule;
-use Illuminate\Foundation\Http\FormRequest;
+
 class LocationsController extends Controller
 {
     /** @var LocationTenantRepository */
@@ -66,14 +66,6 @@ class LocationsController extends Controller
      */
     public function store(LocationStoreRequest $request): RedirectResponse
     {
-        $request->validate([
-           'name' => [
-                'required',
-                'max:255',
-                Rule::unique('sendportal_locations')
-                    ->where('workspace_id', Sendportal::currentWorkspaceId()),
-            ],
-        ]);
         $data = $request->all();
         $name = Arr::get($request, 'name');
         $slug = Str::slug($name);
@@ -102,7 +94,7 @@ class LocationsController extends Controller
     /**
      * @throws Exception
      */
-    public function update(int $id, FormRequest $request): RedirectResponse
+    public function update(int $id, LocationUpdateRequest $request): RedirectResponse
     {
         $this->locationRepository->update(Sendportal::currentWorkspaceId(), $id, $request->all());
 
