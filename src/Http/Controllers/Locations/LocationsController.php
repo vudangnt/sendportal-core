@@ -15,6 +15,7 @@ use Sendportal\Base\Http\Requests\LocationStoreRequest;
 use Sendportal\Base\Http\Requests\TagUpdateRequest;
 use Sendportal\Base\Models\Location;
 use Sendportal\Base\Repositories\LocationTenantRepository;
+use Illuminate\Validation\Rule;
 
 class LocationsController extends Controller
 {
@@ -66,7 +67,12 @@ class LocationsController extends Controller
     public function store(LocationStoreRequest $request): RedirectResponse
     {
         $request->validate([
-            'name' => 'required|unique:sendportal_locations,name',
+           'name' => [
+                'required',
+                'max:255',
+                Rule::unique('sendportal_tags')
+                    ->where('workspace_id', Sendportal::currentWorkspaceId()),
+            ],
         ]);
         $data = $request->all();
         $name = Arr::get($request, 'name');
