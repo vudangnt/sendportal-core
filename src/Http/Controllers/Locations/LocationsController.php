@@ -12,7 +12,7 @@ use Illuminate\View\View;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\LocationStoreRequest;
-use Sendportal\Base\Http\Requests\TagUpdateRequest;
+use Sendportal\Base\Http\Requests\LocationUpdateRequest;
 use Sendportal\Base\Models\Location;
 use Sendportal\Base\Repositories\LocationTenantRepository;
 use Illuminate\Validation\Rule;
@@ -70,7 +70,7 @@ class LocationsController extends Controller
            'name' => [
                 'required',
                 'max:255',
-                Rule::unique('sendportal_tags')
+                Rule::unique('sendportal_locations')
                     ->where('workspace_id', Sendportal::currentWorkspaceId()),
             ],
         ]);
@@ -102,7 +102,7 @@ class LocationsController extends Controller
     /**
      * @throws Exception
      */
-    public function update(int $id, TagUpdateRequest $request): RedirectResponse
+    public function update(int $id, LocationUpdateRequest $request): RedirectResponse
     {
         $this->locationRepository->update(Sendportal::currentWorkspaceId(), $id, $request->all());
 

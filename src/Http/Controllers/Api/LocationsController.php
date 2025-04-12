@@ -10,7 +10,7 @@ use Illuminate\Http\Response;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\Api\LocationStoreRequest;
-use Sendportal\Base\Http\Requests\Api\TagUpdateRequest;
+use Sendportal\Base\Http\Requests\Api\LocationUpdateRequest;
 use Sendportal\Base\Http\Resources\Location as LocationResource;
 use Sendportal\Base\Repositories\LocationTenantRepository;
 use Sendportal\Base\Services\Locations\ApiLocationService;
@@ -46,7 +46,7 @@ class LocationsController extends Controller
     /**
      * @throws Exception
      */
-    public function store(locationstoreRequest $request): LocationResource
+    public function store(LocationStoreRequest $request): LocationResource
     {
         $input = $request->validated();
         $workspaceId = Sendportal::currentWorkspaceId();
@@ -70,7 +70,7 @@ class LocationsController extends Controller
     /**
      * @throws Exception
      */
-    public function update(TagUpdateRequest $request, int $id): LocationResource
+    public function update(LocationUpdateRequest $request, int $id): LocationResource
     {
         $workspaceId = Sendportal::currentWorkspaceId();
         $location = $this->locations->update($workspaceId, $id, $request->validated());
