@@ -15,7 +15,10 @@ class LocationUpdateRequest extends FormRequest
         return [
             'name' => [
                 'required',
-                'max:255'
+                'max:255',
+                Rule::unique('sendportal_locations')
+                    ->where('workspace_id', Sendportal::currentWorkspaceId())
+                    ->ignore($this->location),
             ],
         ];
     }
