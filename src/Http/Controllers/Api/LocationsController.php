@@ -14,7 +14,7 @@ use Sendportal\Base\Http\Requests\Api\LocationUpdateRequest;
 use Sendportal\Base\Http\Resources\Location as LocationResource;
 use Sendportal\Base\Repositories\LocationTenantRepository;
 use Sendportal\Base\Services\Locations\ApiLocationService;
-
+use Illuminate\Foundation\Http\FormRequest;
 class LocationsController extends Controller
 {
     /** @var LocationTenantRepository */
@@ -70,7 +70,7 @@ class LocationsController extends Controller
     /**
      * @throws Exception
      */
-    public function update(LocationUpdateRequest $request, int $id): LocationResource
+    public function update(FormRequest $request, int $id): LocationResource
     {
         $workspaceId = Sendportal::currentWorkspaceId();
         $location = $this->locations->update($workspaceId, $id, $request->validated());
