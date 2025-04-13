@@ -28,7 +28,10 @@ class SubscribersImportRequest extends FormRequest
 
         return [
             'file' => 'required|file|max:' . $size . '|mimetypes:text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'tags[]' => 'array'
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['exists:sendportal_tags,id'],
+            'locations' => ['nullable', 'array'],
+            'locations.*' => ['exists:sendportal_locations,id'],
         ];
     }
 }

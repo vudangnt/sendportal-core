@@ -55,6 +55,8 @@ class ApiRoutes
                         ->name('tags.subscribers.destroy');
 
                     $apiRouter->apiResource('templates', 'TemplatesController');
+
+
                 }
             );
         };
@@ -73,6 +75,10 @@ class ApiRoutes
                 $webhookRouter->post('mailjet', 'MailjetWebhooksController@handle')->name('mailjet');
                 $webhookRouter->post('postal', 'PostalWebhooksController@handle')->name('postal');
             });
+
+
+            $this->get('v1/import-processing', '\Sendportal\Base\Http\Controllers\Subscribers\SubscribersImportController@importProgress')
+                ->name('subscribers.import.progress');
 
             $this->get('v1/ping', '\Sendportal\Base\Http\Controllers\Api\PingController@index');
         };

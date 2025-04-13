@@ -176,4 +176,121 @@
 
 @push('js')
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.12/dist/js/bootstrap-select.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Chỉ chạy nếu có thông báo import đang xử lý
+        if (document.querySelector('.import-processing')) {
+            function checkProgress() {
+                fetch('/api/v1/import-processing')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Cập nhật thanh tiến trình
+                        updateProgressBar(data);
+
+                        // Kiểm tra nếu đã hoàn thành tất cả chunks
+                        if (data.completed_chunks && data.total_chunks && 
+                            data.completed_chunks >= data.total_chunks) {
+                            // Import hoàn tất
+                            showCompletedMessage();
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        } else {
+                            // Kiểm tra lại sau 2 giây
+                            setTimeout(checkProgress, 2000);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showErrorMessage(error);
+                    });
+            }
+
+            function updateProgressBar(data) {
+                const progressBar = document.querySelector('.progress-bar');
+                const statusText = document.querySelector('.import-status');
+                const timeRemaining = document.querySelector('.time-remaining');
+                
+                if (progressBar) {
+                    const progress = Math.round(data.progress);
+                    progressBar.style.width = progress + '%';
+                    progressBar.setAttribute('aria-valuenow', progress);
+                    
+                    // Cập nhật thông tin chunks
+                    statusText.textContent = `Đã xử lý ${data.completed_chunks}/${data.total_chunks} chunks (${progress}%)`;
+                    
+                    // Hiển thị thời gian còn lại
+                    if (data.estimated_time) {
+                        timeRemaining.textContent = `Thời gian còn lại: ${formatTime(data.estimated_time)}`;
+                    }
+
+                    // Thay đổi màu dựa trên tiến trình
+                    if (progress < 25) {
+                        progressBar.classList.remove('bg-success', 'bg-warning');
+                        progressBar.classList.add('bg-info');
+                    } else if (progress < 75) {
+                        progressBar.classList.remove('bg-info', 'bg-success');
+                        progressBar.classList.add('bg-warning');
+                    } else {
+                        progressBar.classList.remove('bg-warning', 'bg-info');
+                        progressBar.classList.add('bg-success');
+                    }
+                }
+            }
+
+            function formatTime(seconds) {
+                if (seconds < 60) return `${seconds} giây`;
+                if (seconds < 3600) {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    return `${minutes} phút ${remainingSeconds} giây`;
+                }
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return `${hours} giờ ${minutes} phút`;
+            }
+
+            function showCompletedMessage() {
+                const alert = document.querySelector('.import-processing');
+                alert.classList.remove('alert-info');
+                alert.classList.add('alert-success');
+                alert.innerHTML = `
+                    <strong>Import hoàn tất!</strong><br>
+                    Trang sẽ tự động tải lại sau 2 giây...
+                `;
+            }
+
+            function showErrorMessage(error) {
+                const alert = document.querySelector('.import-processing');
+                alert.classList.remove('alert-info');
+                alert.classList.add('alert-danger');
+                alert.innerHTML = `
+                    <strong>Có lỗi xảy ra!</strong><br>
+                    ${error.message}
+                `;
+            }
+
+            // Bắt đầu kiểm tra tiến trình
+            checkProgress();
+        }
+    });
+    </script>
 @endpush
+
+@if (session('success') && str_contains(session('success'), 'Import đang được xử lý'))
+<div class="alert alert-info import-processing">
+    <h5 class="alert-heading">{{ session('success') }}</h5>
+    <div class="import-status mb-2">Đang bắt đầu import...</div>
+    <div class="time-remaining mb-2">Đang tính toán thời gian...</div>
+    <div class="progress">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+             role="progressbar" 
+             style="width: 0%" 
+             aria-valuenow="0" 
+             aria-valuemin="0" 
+             aria-valuemax="100">
+        </div>
+    </div>
+    <small class="mt-2 text-muted">Vui lòng không đóng trang trong quá trình import</small>
+</div>
+@endif

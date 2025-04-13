@@ -15,13 +15,18 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
-use Maatwebsite\Excel\Facades\Excel;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\SubscribersImportRequest;
 use Sendportal\Base\Repositories\TagTenantRepository;
+use Sendportal\Base\Repositories\LocationTenantRepository;
 use Sendportal\Base\Services\Subscribers\ImportSubscriberService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
+use Sendportal\Base\Jobs\ImportSubscribersJob;
+use Sendportal\Base\Jobs\TrackImportProgressJob;
 
 class SubscribersImportController extends Controller
 {
@@ -36,11 +41,12 @@ class SubscribersImportController extends Controller
     /**
      * @throws Exception
      */
-    public function show(TagTenantRepository $tagRepo): ViewContract
+    public function show(TagTenantRepository $tagRepo, LocationTenantRepository $locationRepo): ViewContract
     {
         $tags = $tagRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
+        $locations = $locationRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
 
-        return view('sendportal::subscribers.import', compact('tags'));
+        return view('sendportal::subscribers.import', compact('tags', 'locations'));
     }
 
     /**
@@ -60,41 +66,37 @@ class SubscribersImportController extends Controller
             $path = $request->file('file')->storeAs('imports', $filename, 'local');
 
             $array = (new UsersImport)->toArray(Storage::disk('local')->path($path));
-            $data = [];
-            $counter = [
-                'created' => 0,
-                'updated' => 0
-            ];
-            foreach ($array[0] as $index => $row) {
-                if (empty($row['email'])){
-                    continue;
-                }
-                $parsedData = [
-                    'id' => $row['id'],
-                    'email' => $row['email'],
-                    'first_name' => $row['first_name'],
-                    'last_name' => $row['last_name']
-                ];
+            
+            $chunks = array_chunk($array[0], 500); // Xử lý mỗi lần 1000 records
+            $totalChunks = count($chunks);
 
-                $data = Arr::only($parsedData, ['id', 'email', 'first_name', 'last_name']);
-                $data['tags'] = $request->get('tags') ?? [];
-                $subscriber = $this->subscriberService->import(Sendportal::currentWorkspaceId(), $data);
-                if ($subscriber->wasRecentlyCreated) {
-                    $counter['created']++;
-                } else {
-                    $counter['updated']++;
-                }
+            // Lưu thời gian bắt đầu
+            $workspaceId = Sendportal::currentWorkspaceId();
+
+            Cache::put("import_start_time_{$workspaceId}", now(), now()->addHours(1));
+
+            // Khởi tạo tiến trình
+            TrackImportProgressJob::dispatch($workspaceId, $totalChunks, 0)
+                ->onQueue('default');
+
+            foreach ($chunks as $index => $chunk) {
+                Log::info('Importing chunk ' . ($index + 1) . ' of ' . $totalChunks);
+                ImportSubscribersJob::dispatch(
+                    $chunk,
+                    $workspaceId,
+                    $request->get('tags') ?? [],
+                    $request->get('locations') ?? [],
+                    $index + 1,  // Chunk hiện tại
+                    $totalChunks // Tổng số chunks
+                )->onQueue('default');
             }
 
+            // Xóa file tạm
             Storage::disk('local')->delete($path);
 
+
             return redirect()->route('sendportal.subscribers.index')
-                ->with('success',
-                    __('Imported :created subscriber(s) and updated :updated subscriber(s) out of :total', [
-                        'created' => $counter['created'],
-                        'updated' => $counter['updated'],
-                        'total' => $counter['created'] + $counter['updated']
-                    ]));
+                ->with('success', __('Import đang được xử lý trong nền. Bạn sẽ nhận được thông báo khi hoàn tất.'));
         }
 
         return redirect()->route('sendportal.subscribers.index')
@@ -155,5 +157,18 @@ class SubscribersImportController extends Controller
         if ($validator->fails()) {
             throw new ValidationException($validator);
         }
+    }
+
+    public function importProgress()
+    {
+        $workspaceId = 1;//Sendportal::currentWorkspaceId();
+        $cacheKey = "import_progress_{$workspaceId}";
+        
+        $progress = Cache::get($cacheKey, [
+            'progress' => 0,
+            'updated_at' => null
+        ]);
+
+        return response()->json($progress);
     }
 }
