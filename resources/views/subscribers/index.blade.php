@@ -89,7 +89,7 @@
                     <th>{{ __('Name') }}</th>
                     <th>{{ __('Tags') }}</th>
                     <th>{{ __('Locations') }}</th>
-                    <th>{{ __('Created') }}</th>
+                    <th>{{ __('Updated') }}</th>
                     <th>{{ __('Status') }}</th>
                     <th>{{ __('Actions') }}</th>
                 </tr>
@@ -118,7 +118,7 @@
                             @endforelse
                         </td>
                         <td><span
-                                title="{{ $subscriber->created_at }}">{{ $subscriber->created_at->diffForHumans() }}</span>
+                                title="{{ $subscriber->updated_at }}">{{ $subscriber->updated_at->diffForHumans() }}</span>
                         </td>
                         <td>
                             @if($subscriber->unsubscribed_at)
