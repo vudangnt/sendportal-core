@@ -50,7 +50,7 @@ class SubscribersController extends Controller
             Sendportal::currentWorkspaceId(),
             'updated_atDesc',
             ['tags','locations'],
-            50,
+            1000,
             request()->all()
         )->withQueryString();
         $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
