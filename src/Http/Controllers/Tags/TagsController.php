@@ -67,7 +67,7 @@ class TagsController extends Controller
     public function edit(int $id): View
     {
         $tag = $this->tagRepository->find(Sendportal::currentWorkspaceId(), $id, ['subscribers']);
-        $parentTags = Tag::where('parent_id', 0)->get();
+        $parentTags = $this->tagRepository->getQueryBuilder(Sendportal::currentWorkspaceId())->where('parent_id', 0)->get();
         return view('sendportal::tags.edit', compact('tag', 'parentTags'));
     }
 
