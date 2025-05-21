@@ -146,6 +146,7 @@ class WebRoutes
                     $subscriberRouter->get('export', 'SubscribersController@export')->name('export');
                     $subscriberRouter->get('import', 'SubscribersImportController@show')->name('import');
                     $subscriberRouter->post('import', 'SubscribersImportController@store')->name('import.store');
+                    $subscriberRouter->delete('destroy-all', 'SubscribersController@destroyAllByIds')->name('destroy-all');
                 });
                 $appRouter->resource('subscribers', 'Subscribers\SubscribersController');
 

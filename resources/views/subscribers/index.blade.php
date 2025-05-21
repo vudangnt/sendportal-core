@@ -54,6 +54,9 @@
 
         @slot('right')
             <div class="btn-group mr-2">
+                <button id="deleteSelectedBtn" class="btn btn-danger btn-md" style="display: none;">
+                    <i class="fa fa-trash mr-1"></i> {{ __('Delete Selected') }}
+                </button>
                 <button class="btn btn-md btn-default dropdown-toggle" type="button" data-toggle="dropdown">
                     <i class="fa fa-bars color-gray-400"></i>
                 </button>
@@ -85,6 +88,9 @@
             <table class="table">
                 <thead>
                 <tr>
+                    <th>
+                        <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                    </th>
                     <th>{{ __('Email') }}</th>
                     <th>{{ __('Name') }}</th>
                     <th>{{ __('Tags') }}</th>
@@ -97,6 +103,9 @@
                 <tbody>
                 @forelse($subscribers as $subscriber)
                     <tr>
+                        <td>
+                            <input type="checkbox" class="subscriber-checkbox" value="{{ $subscriber->id }}">
+                        </td>
                         <td>
                             <a href="{{ route('sendportal.subscribers.show', $subscriber->id) }}">
                                 {{ $subscriber->email }}
@@ -273,6 +282,72 @@
             // Bắt đầu kiểm tra tiến trình
             checkProgress();
         }
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const subscriberCheckboxes = document.getElementsByClassName('subscriber-checkbox');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
+        // Xử lý checkbox "Select All"
+        selectAllCheckbox.addEventListener('change', function() {
+            Array.from(subscriberCheckboxes).forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateDeleteButton();
+        });
+
+        // Xử lý các checkbox riêng lẻ
+        Array.from(subscriberCheckboxes).forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateDeleteButton();
+                // Cập nhật trạng thái "Select All"
+                selectAllCheckbox.checked = Array.from(subscriberCheckboxes).every(cb => cb.checked);
+            });
+        });
+
+        // Hiển thị/ẩn nút Delete Selected
+        function updateDeleteButton() {
+            const checkedBoxes = document.querySelectorAll('.subscriber-checkbox:checked');
+            deleteSelectedBtn.style.display = checkedBoxes.length > 0 ? 'inline-block' : 'none';
+        }
+
+        // Xử lý xóa các subscriber đã chọn
+        deleteSelectedBtn.addEventListener('click', function() {
+            const checkedBoxes = document.querySelectorAll('.subscriber-checkbox:checked');
+            const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedIds.length === 0) return;
+
+            if (confirm('Bạn có chắc chắn muốn xóa ' + selectedIds.length + ' subscriber đã chọn?')) {
+                // Tạo form và submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route("sendportal.subscribers.destroy-all") }}';
+                
+                // Thêm CSRF token
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+
+                // Thêm method spoofing
+                const methodField = document.createElement('input');
+                methodField.type = 'hidden';
+                methodField.name = '_method';
+                methodField.value = 'DELETE';
+                form.appendChild(methodField);
+
+                // Thêm IDs
+                const idsField = document.createElement('input');
+                idsField.type = 'hidden';
+                idsField.name = 'ids';
+                idsField.value = JSON.stringify(selectedIds);
+                form.appendChild(idsField);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
     });
     </script>
 @endpush

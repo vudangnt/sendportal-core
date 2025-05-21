@@ -10,6 +10,7 @@ use Box\Spout\Common\Exception\UnsupportedTypeException;
 use Box\Spout\Writer\Exception\WriterNotOpenedException;
 use Exception;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Sendportal\Base\Events\SubscriberAddedEvent;
@@ -34,7 +35,7 @@ class SubscribersController extends Controller
     public function __construct(
         SubscriberTenantRepositoryInterface $subscriberRepo,
         TagTenantRepository $tagRepo,
-        LocationTenantRepository $locationTenantRepository
+        LocationTenantRepository $locationTenantRepository,
     ) {
         $this->subscriberRepo = $subscriberRepo;
         $this->tagRepo = $tagRepo;
@@ -50,7 +51,7 @@ class SubscribersController extends Controller
             Sendportal::currentWorkspaceId(),
             'updated_atDesc',
             ['tags','locations'],
-            1000,
+            100,
             request()->all()
         )->withQueryString();
         $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
@@ -155,6 +156,29 @@ class SubscribersController extends Controller
         $subscriber->delete();
 
         return redirect()->route('sendportal.subscribers.index')->withSuccess('Subscriber deleted');
+    }
+
+    public function destroyAllByIds(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|json'
+        ]);
+
+        $ids = json_decode($request->input('ids'), true);
+        
+        if (!is_array($ids)) {
+            return redirect()->back()->withErrors('Định dạng dữ liệu không hợp lệ');
+        }
+
+        $subscribers = $this->subscriberRepo->getWhereIn(Sendportal::currentWorkspaceId(), $ids);
+        $count = 0;
+        foreach ($subscribers as $subscriber) {
+            $subscriber->delete();
+            $count++;
+        }
+        
+        return redirect()->route('sendportal.subscribers.index')
+            ->withSuccess(sprintf('Đã xóa %d subscriber thành công', $count));
     }
 
     /**
