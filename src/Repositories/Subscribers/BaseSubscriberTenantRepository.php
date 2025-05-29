@@ -142,6 +142,10 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
             $instance->whereNull('unsubscribed_at');
         } elseif ($status === 'unsubscribed') {
             $instance->whereNotNull('unsubscribed_at');
+        } elseif ($status === 'no_tags') {
+            $instance->whereDoesntHave('tags');
+        } elseif ($status === 'no_locations') {
+            $instance->whereDoesntHave('locations');
         }
     }
 

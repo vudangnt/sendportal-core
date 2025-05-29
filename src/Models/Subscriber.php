@@ -90,6 +90,7 @@ class Subscriber extends BaseModel
     {
         return $this->belongsToMany(Location::class, 'sendportal_location_subscriber')->withTimestamps();
     }
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class)

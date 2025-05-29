@@ -22,6 +22,11 @@
                             value="subscribed" {{ request('status') == 'subscribed' ? 'selected' : '' }}>{{ __('Subscribed') }}</option>
                         <option
                             value="unsubscribed" {{ request('status') == 'unsubscribed' ? 'selected' : '' }}>{{ __('Unsubscribed') }}</option>
+
+                            <option
+                            value="no_tags" {{ request('status') == 'no_tags' ? 'selected' : '' }}>{{ __('Not has tags') }}</option>
+                            <option
+                            value="no_locations" {{ request('status') == 'no_locations' ? 'selected' : '' }}>{{ __('Not has locations') }}</option>
                     </select>
                 </div>
 
