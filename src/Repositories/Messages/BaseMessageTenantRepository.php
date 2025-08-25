@@ -153,8 +153,10 @@ abstract class BaseMessageTenantRepository extends BaseTenantRepository implemen
     protected function applySentFilter(Builder $instance, array $filters = []): void
     {
         if ($sentAt = Arr::get($filters, 'draft')) {
-            $instance->whereNotNull('queued_at')
-                ->whereNull('sent_at');
+            // Draft messages can have:
+            // 1. queued_at IS NOT NULL and sent_at IS NULL (queued but not sent)
+            // 2. queued_at IS NULL and sent_at IS NULL (never queued, pure draft)
+            $instance->whereRaw('((queued_at IS NOT NULL AND sent_at IS NULL) OR (queued_at IS NULL AND sent_at IS NULL))');
         } elseif ($sentAt = Arr::get($filters, 'sent')) {
             $instance->whereNotNull('sent_at');
         }
@@ -199,6 +201,8 @@ abstract class BaseMessageTenantRepository extends BaseTenantRepository implemen
                 ->whereNull('opened_at');
         } elseif ($status === 'sent') {
             $instance->whereNull('delivered_at');
+        } elseif ($status === 'draft') {
+            $instance->whereNull('sent_at');
         }
     }
 }
