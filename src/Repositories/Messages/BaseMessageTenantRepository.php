@@ -67,14 +67,29 @@ abstract class BaseMessageTenantRepository extends BaseTenantRepository implemen
      * @inheritDoc
      * @throws Exception
      */
-    public function opens(int $workspaceId, string $sourceType, int $sourceId): LengthAwarePaginator
+    public function opens(int $workspaceId, string $sourceType, int $sourceId, array $options = []): LengthAwarePaginator
     {
+        $orderBy = $options['order_by'] ?? 'opened_at';
+        $direction = strtolower($options['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+
+        $allowedColumns = [
+            'opened_at',
+            'recipient_email',
+            'subject',
+            'open_count',
+        ];
+
+        if (!in_array($orderBy, $allowedColumns, true)) {
+            $orderBy = 'opened_at';
+        }
+
         return $this->getQueryBuilder($workspaceId)
             ->where('workspace_id', $workspaceId)
             ->where('source_type', $sourceType)
             ->where('source_id', $sourceId)
             ->whereNotNull('opened_at')
-            ->orderBy('opened_at')
+            ->orderBy($orderBy, $direction)
+            ->orderBy('id')
             ->paginate(50);
     }
 
@@ -82,14 +97,29 @@ abstract class BaseMessageTenantRepository extends BaseTenantRepository implemen
      * @inheritDoc
      * @throws Exception
      */
-    public function clicks(int $workspaceId, string $sourceType, int $sourceId): LengthAwarePaginator
+    public function clicks(int $workspaceId, string $sourceType, int $sourceId, array $options = []): LengthAwarePaginator
     {
+        $orderBy = $options['order_by'] ?? 'clicked_at';
+        $direction = strtolower($options['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+
+        $allowedColumns = [
+            'clicked_at',
+            'recipient_email',
+            'subject',
+            'click_count',
+        ];
+
+        if (!in_array($orderBy, $allowedColumns, true)) {
+            $orderBy = 'clicked_at';
+        }
+
         return $this->getQueryBuilder($workspaceId)
             ->where('workspace_id', $workspaceId)
             ->where('source_type', $sourceType)
             ->where('source_id', $sourceId)
             ->whereNotNull('clicked_at')
-            ->orderBy('clicked_at')
+            ->orderBy($orderBy, $direction)
+            ->orderBy('id')
             ->paginate(50);
     }
 

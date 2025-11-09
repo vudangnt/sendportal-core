@@ -9,12 +9,15 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Models\Campaign;
+use Sendportal\Base\Models\Message;
 use Sendportal\Base\Presenters\CampaignReportPresenter;
 use Sendportal\Base\Repositories\Campaigns\CampaignTenantRepositoryInterface;
 use Sendportal\Base\Repositories\Messages\MessageTenantRepositoryInterface;
+use Sendportal\Base\Repositories\TagTenantRepository;
 
 class CampaignReportsController extends Controller
 {
@@ -24,12 +27,17 @@ class CampaignReportsController extends Controller
     /** @var MessageTenantRepositoryInterface */
     protected $messageRepo;
 
+    /** @var TagTenantRepository */
+    protected $tagRepo;
+
     public function __construct(
         CampaignTenantRepositoryInterface $campaignRepository,
-        MessageTenantRepositoryInterface $messageRepo
+        MessageTenantRepositoryInterface $messageRepo,
+        TagTenantRepository $tagRepository
     ) {
         $this->campaignRepo = $campaignRepository;
         $this->messageRepo = $messageRepo;
+        $this->tagRepo = $tagRepository;
     }
 
     /**
@@ -94,7 +102,7 @@ class CampaignReportsController extends Controller
      * @return RedirectResponse|View
      * @throws Exception
      */
-    public function opens(int $id)
+    public function opens(int $id, Request $request)
     {
         $campaign = $this->campaignRepo->find(Sendportal::currentWorkspaceId(), $id);
         $averageTimeToOpen = $this->campaignRepo->getAverageTimeToOpen($campaign);
@@ -107,9 +115,19 @@ class CampaignReportsController extends Controller
             return redirect()->route('sendportal.campaigns.status', $id);
         }
 
-        $messages = $this->messageRepo->opens(Sendportal::currentWorkspaceId(), Campaign::class, $id);
+        [$orderBy, $direction] = $this->resolveOrdering($request, 'opened_at', ['open_count', 'opened_at', 'recipient_email', 'subject']);
 
-        return view('sendportal::campaigns.reports.opens', compact('campaign', 'messages', 'averageTimeToOpen'));
+        $messages = $this->messageRepo->opens(
+            Sendportal::currentWorkspaceId(),
+            Campaign::class,
+            $id,
+            [
+                'order_by' => $orderBy,
+                'direction' => $direction,
+            ]
+        );
+
+        return view('sendportal::campaigns.reports.opens', compact('campaign', 'messages', 'averageTimeToOpen', 'orderBy', 'direction'));
     }
 
     /**
@@ -118,7 +136,7 @@ class CampaignReportsController extends Controller
      * @return RedirectResponse|View
      * @throws Exception
      */
-    public function clicks(int $id)
+    public function clicks(int $id, Request $request)
     {
         $campaign = $this->campaignRepo->find(Sendportal::currentWorkspaceId(), $id);
         $averageTimeToClick = $this->campaignRepo->getAverageTimeToClick($campaign);
@@ -131,9 +149,19 @@ class CampaignReportsController extends Controller
             return redirect()->route('sendportal.campaigns.status', $id);
         }
 
-        $messages = $this->messageRepo->clicks(Sendportal::currentWorkspaceId(), Campaign::class, $id);
+        [$orderBy, $direction] = $this->resolveOrdering($request, 'clicked_at', ['click_count', 'clicked_at', 'recipient_email', 'subject']);
 
-        return view('sendportal::campaigns.reports.clicks', compact('campaign', 'messages', 'averageTimeToClick'));
+        $messages = $this->messageRepo->clicks(
+            Sendportal::currentWorkspaceId(),
+            Campaign::class,
+            $id,
+            [
+                'order_by' => $orderBy,
+                'direction' => $direction,
+            ]
+        );
+
+        return view('sendportal::campaigns.reports.clicks', compact('campaign', 'messages', 'averageTimeToClick', 'orderBy', 'direction'));
     }
 
     /**
@@ -188,5 +216,87 @@ class CampaignReportsController extends Controller
         $template = $campaign->template;
 
         return view('sendportal::campaigns.reports.templates', compact('campaign', 'template'));
+    }
+
+    public function bulkTag(int $id, Request $request): RedirectResponse
+    {
+        $request->validate([
+            'message_ids' => ['required', 'array', 'min:1'],
+            'message_ids.*' => ['integer'],
+            'tag_label' => ['required', 'string', 'max:191'],
+        ]);
+
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $campaign = $this->campaignRepo->find($workspaceId, $id);
+
+        $messages = Message::query()
+            ->where('workspace_id', $workspaceId)
+            ->where('source_type', Campaign::class)
+            ->where('source_id', $campaign->id)
+            ->whereIn('id', $request->input('message_ids', []))
+            ->get();
+
+        if ($messages->isEmpty()) {
+            return $this->redirectWithFeedback($request, $campaign, __('Không tìm thấy bản ghi hợp lệ để gắn tag.'), 'danger');
+        }
+
+        $subscriberIds = $messages->pluck('subscriber_id')->filter()->unique()->values();
+
+        if ($subscriberIds->isEmpty()) {
+            return $this->redirectWithFeedback($request, $campaign, __('Không có subscriber tương ứng với các bản ghi đã chọn.'), 'warning');
+        }
+
+        $tagSuffix = trim($request->input('tag_label'));
+        $tagName = 're_mkt_' . Str::slug($tagSuffix, '_');
+
+        $tag = $this->tagRepo->findBy($workspaceId, 'name', $tagName);
+
+        if (!$tag) {
+            $tag = $this->tagRepo->store($workspaceId, [
+                'name' => $tagName,
+            ]);
+        }
+
+        $tag->subscribers()->syncWithoutDetaching($subscriberIds->all());
+
+        $message = __('Đã gắn tag ":tag" cho :count subscriber.', [
+            'tag' => $tag->name,
+            'count' => $subscriberIds->count(),
+        ]);
+
+        return $this->redirectWithFeedback($request, $campaign, $message);
+    }
+
+    /**
+     * @param array<string> $allowed
+     *
+     * @return array{0:string,1:string}
+     */
+    protected function resolveOrdering(Request $request, string $defaultColumn, array $allowed): array
+    {
+        $orderBy = $request->get('sort', $defaultColumn);
+        $direction = strtolower($request->get('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        if (!in_array($orderBy, $allowed, true)) {
+            $orderBy = $defaultColumn;
+        }
+
+        return [$orderBy, $direction];
+    }
+
+    protected function redirectWithFeedback(Request $request, Campaign $campaign, string $message, string $level = 'success'): RedirectResponse
+    {
+        $redirectUrl = $request->input('redirect_to');
+
+        $targetRoute = $request->input('context') === 'clicks'
+            ? route('sendportal.campaigns.reports.clicks', $campaign->id)
+            : route('sendportal.campaigns.reports.opens', $campaign->id);
+
+        $redirect = $redirectUrl ? redirect()->to($redirectUrl) : redirect()->to($targetRoute);
+
+        return $redirect->with('flash_notification', collect([[
+            'message' => $message,
+            'level' => $level,
+        ]]));
     }
 }

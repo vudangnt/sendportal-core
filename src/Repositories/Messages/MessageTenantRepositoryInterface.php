@@ -14,9 +14,9 @@ interface MessageTenantRepositoryInterface extends BaseTenantInterface
 
     public function recipients(int $workspaceId, string $sourceType, int $sourceId): LengthAwarePaginator;
 
-    public function opens(int $workspaceId, string $sourceType, int $sourceId): LengthAwarePaginator;
+    public function opens(int $workspaceId, string $sourceType, int $sourceId, array $options = []): LengthAwarePaginator;
 
-    public function clicks(int $workspaceId, string $sourceType, int $sourceId): LengthAwarePaginator;
+    public function clicks(int $workspaceId, string $sourceType, int $sourceId, array $options = []): LengthAwarePaginator;
 
     public function bounces(int $workspaceId, string $sourceType, int $sourceId): LengthAwarePaginator;
 

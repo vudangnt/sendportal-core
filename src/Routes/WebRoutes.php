@@ -82,6 +82,10 @@ class WebRoutes
                         '{id}/report/clicks',
                         'CampaignReportsController@clicks'
                     )->name('reports.clicks');
+                    $campaignRouter->post(
+                        '{id}/report/messages/tag',
+                        'CampaignReportsController@bulkTag'
+                    )->name('reports.bulk-tag');
                     $campaignRouter->get('{id}/report/unsubscribes', 'CampaignReportsController@unsubscribes')
                         ->name('reports.unsubscribes');
                     $campaignRouter->get(
