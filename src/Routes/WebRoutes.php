@@ -12,6 +12,7 @@ class WebRoutes
     public function sendportalPublicWebRoutes(): callable
     {
         return function () {
+            /** @var Router $this */
             $this->name('sendportal.')->namespace('\Sendportal\Base\Http\Controllers')->group(static function (
                 Router $appRouter
             ) {
@@ -44,6 +45,7 @@ class WebRoutes
     public function sendportalWebRoutes(): callable
     {
         return function () {
+            /** @var Router $this */
             $this->name('sendportal.')->namespace('\Sendportal\Base\Http\Controllers')->group(static function (
                 Router $appRouter
             ) {
@@ -77,6 +79,8 @@ class WebRoutes
                     $campaignRouter->get('{id}/report', 'CampaignReportsController@index')->name('reports.index');
                     $campaignRouter->get('{id}/report/recipients', 'CampaignReportsController@recipients')
                         ->name('reports.recipients');
+                    $campaignRouter->get('{id}/report/recipients/export', 'CampaignReportsController@recipientsExport')
+                        ->name('reports.recipients.export');
                     $campaignRouter->get('{id}/report/opens', 'CampaignReportsController@opens')->name('reports.opens');
                     $campaignRouter->get(
                         '{id}/report/clicks',

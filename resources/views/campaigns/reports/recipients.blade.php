@@ -9,6 +9,17 @@
     @include('sendportal::campaigns.reports.partials.nav')
 
     <div class="card">
+        <div class="card-body pb-0">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between mb-3">
+                <h5 class="mb-2 mb-md-0">{{ __('Danh sách người nhận') }}</h5>
+                <div>
+                    <a href="{{ route('sendportal.campaigns.reports.recipients.export', $campaign->id) }}"
+                       class="btn btn-outline-primary btn-sm">
+                        {{ __('Xuất CSV') }}
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="card-table table-responsive">
             <table class="table">
                 <thead>

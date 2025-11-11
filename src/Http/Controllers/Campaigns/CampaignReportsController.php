@@ -8,8 +8,9 @@ use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\View\View;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Models\Campaign;
@@ -94,6 +95,57 @@ class CampaignReportsController extends Controller
         $messages = $this->messageRepo->recipients(Sendportal::currentWorkspaceId(), Campaign::class, $id);
 
         return view('sendportal::campaigns.reports.recipients', compact('campaign', 'messages'));
+    }
+
+    /**
+     * Export campaign recipients as CSV.
+     *
+     * @return RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
+     * @throws Exception
+     */
+    public function recipientsExport(int $id)
+    {
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $campaign = $this->campaignRepo->find($workspaceId, $id);
+
+        if ($campaign->draft) {
+            return redirect()->route('sendportal.campaigns.edit', $id);
+        }
+
+        if ($campaign->queued || $campaign->sending) {
+            return redirect()->route('sendportal.campaigns.status', $id);
+        }
+
+        $messages = $this->messageRepo->recipientsAll($workspaceId, Campaign::class, $id);
+
+        if ($messages->isEmpty()) {
+            return redirect()
+                ->route('sendportal.campaigns.reports.recipients', $campaign->id)
+                ->with('flash_notification', collect([[
+                    'message' => __('Không có dữ liệu để xuất.'),
+                    'level' => 'warning',
+                ]]));
+        }
+
+        $filename = sprintf('campaign-%d-recipients-%s.csv', $campaign->id, date('Y-m-d-H-i-s'));
+
+        return (new FastExcel($messages))->download($filename, static function (Message $message) {
+            return [
+                'message_id' => $message->id,
+                'subscriber_id' => $message->subscriber_id,
+                'subscriber_email' => $message->recipient_email,
+                'subject' => $message->subject,
+                'sent_at' => optional($message->sent_at)->toDateTimeString(),
+                'delivered_at' => optional($message->delivered_at)->toDateTimeString(),
+                'opened_at' => optional($message->opened_at)->toDateTimeString(),
+                'open_count' => $message->open_count,
+                'clicked_at' => optional($message->clicked_at)->toDateTimeString(),
+                'click_count' => $message->click_count,
+                'bounced_at' => optional($message->bounced_at)->toDateTimeString(),
+                'complained_at' => optional($message->complained_at)->toDateTimeString(),
+                'unsubscribed_at' => optional($message->unsubscribed_at)->toDateTimeString(),
+            ];
+        });
     }
 
     /**

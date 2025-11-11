@@ -9,6 +9,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Sendportal\Base\Facades\Helper;
 use Sendportal\Base\Models\Campaign;
@@ -61,6 +62,20 @@ abstract class BaseMessageTenantRepository extends BaseTenantRepository implemen
             ->whereNotNull('sent_at')
             ->orderBy('recipient_email')
             ->paginate(50);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function recipientsAll(int $workspaceId, string $sourceType, int $sourceId): Collection
+    {
+        return $this->getQueryBuilder($workspaceId)
+            ->where('workspace_id', $workspaceId)
+            ->where('source_type', $sourceType)
+            ->where('source_id', $sourceId)
+            ->whereNotNull('sent_at')
+            ->orderBy('recipient_email')
+            ->get();
     }
 
     /**
