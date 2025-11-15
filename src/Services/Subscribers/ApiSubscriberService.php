@@ -29,17 +29,38 @@ class ApiSubscriberService
      */
     public function storeOrUpdate(int $workspaceId, Collection $data): Subscriber
     {
+        // Convert category and location text to tags/locations arrays
+        $dataArray = $data->toArray();
+        
+        // Handle category text -> tags
+        if (isset($dataArray['category']) && is_string($dataArray['category']) && trim($dataArray['category']) !== '') {
+            if (!isset($dataArray['tags']) || !is_array($dataArray['tags'])) {
+                $dataArray['tags'] = [];
+            }
+            $dataArray['tags'][] = trim($dataArray['category']);
+            unset($dataArray['category']);
+        }
+        
+        // Handle location text -> locations
+        if (isset($dataArray['location']) && is_string($dataArray['location']) && trim($dataArray['location']) !== '') {
+            if (!isset($dataArray['locations']) || !is_array($dataArray['locations'])) {
+                $dataArray['locations'] = [];
+            }
+            $dataArray['locations'][] = trim($dataArray['location']);
+            unset($dataArray['location']);
+        }
+        
         $existingSubscriber = $this->subscribers->findBy($workspaceId, 'email', $data['email']);
 
         if (!$existingSubscriber) {
-            $subscriber = $this->subscribers->store($workspaceId, $data->toArray());
+            $subscriber = $this->subscribers->store($workspaceId, $dataArray);
 
             event(new SubscriberAddedEvent($subscriber));
 
             return $subscriber;
         }
 
-        return $this->subscribers->update($workspaceId, $existingSubscriber->id, $data->toArray());
+        return $this->subscribers->update($workspaceId, $existingSubscriber->id, $dataArray);
     }
 
     public function delete(int $workspaceId, Subscriber $subscriber): bool
