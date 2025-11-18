@@ -33,20 +33,38 @@ class ApiSubscriberService
         $dataArray = $data->toArray();
         
         // Handle category text -> tags
+        // Support both single value and comma-separated values: "IT, Developer, Laravel"
         if (isset($dataArray['category']) && is_string($dataArray['category']) && trim($dataArray['category']) !== '') {
             if (!isset($dataArray['tags']) || !is_array($dataArray['tags'])) {
                 $dataArray['tags'] = [];
             }
-            $dataArray['tags'][] = trim($dataArray['category']);
+            
+            // Parse comma-separated values
+            $categories = array_map('trim', explode(',', $dataArray['category']));
+            $categories = array_filter($categories, function($cat) {
+                return !empty($cat);
+            });
+            
+            // Merge with existing tags array
+            $dataArray['tags'] = array_merge($dataArray['tags'], $categories);
             unset($dataArray['category']);
         }
         
         // Handle location text -> locations
+        // Support both single value and comma-separated values: "Ho Chi Minh, Ha Noi"
         if (isset($dataArray['location']) && is_string($dataArray['location']) && trim($dataArray['location']) !== '') {
             if (!isset($dataArray['locations']) || !is_array($dataArray['locations'])) {
                 $dataArray['locations'] = [];
             }
-            $dataArray['locations'][] = trim($dataArray['location']);
+            
+            // Parse comma-separated values
+            $locations = array_map('trim', explode(',', $dataArray['location']));
+            $locations = array_filter($locations, function($loc) {
+                return !empty($loc);
+            });
+            
+            // Merge with existing locations array
+            $dataArray['locations'] = array_merge($dataArray['locations'], $locations);
             unset($dataArray['location']);
         }
         
