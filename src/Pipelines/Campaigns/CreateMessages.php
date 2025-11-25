@@ -188,8 +188,30 @@ class CreateMessages
             return $message;
         }
 
+        // Validate required fields before creating message
+        if (empty($subscriber->email)) {
+            \Log::error('Cannot create message: subscriber email is empty', [
+                'campaign_id' => $campaign->id,
+                'subscriber_id' => $subscriber->id,
+            ]);
+            throw new \Exception('Subscriber email is required');
+        }
+
+        if (empty($campaign->subject)) {
+            \Log::warning('Campaign subject is empty', [
+                'campaign_id' => $campaign->id,
+                'subscriber_id' => $subscriber->id,
+            ]);
+        }
+
         // the message doesn't exist, so we'll create and dispatch
-        \Log::info('Saving empty email message campaign=' . $campaign->id . ' subscriber=' . $subscriber->id);
+        \Log::info('Creating email message', [
+            'campaign_id' => $campaign->id,
+            'subscriber_id' => $subscriber->id,
+            'recipient_email' => $subscriber->email,
+            'subject' => $campaign->subject,
+        ]);
+
         $attributes = [
             'workspace_id' => $campaign->workspace_id,
             'subscriber_id' => $subscriber->id,
@@ -203,12 +225,28 @@ class CreateMessages
             'sent_at' => null,
         ];
 
-        $message = new Message($attributes);
-        $message->save();
+        try {
+            $message = new Message($attributes);
+            $message->save();
 
-        event(new MessageDispatchEvent($message));
+            \Log::info('Email message created successfully', [
+                'message_id' => $message->id,
+                'campaign_id' => $campaign->id,
+                'subscriber_id' => $subscriber->id,
+            ]);
 
-        return $message;
+            event(new MessageDispatchEvent($message));
+
+            return $message;
+        } catch (\Exception $e) {
+            \Log::error('Failed to create email message', [
+                'campaign_id' => $campaign->id,
+                'subscriber_id' => $subscriber->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
     }
 
     /**
