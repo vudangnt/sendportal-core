@@ -86,7 +86,12 @@ class CampaignReportPresenter
         }
 
         // Extract Carbon instances for $first and $last.
+        // Note: Database stores dates in UTC, so we work with UTC internally for calculations
         [$first, $last] = $this->calculateFirstLast($first, $this->interval);
+        
+        // Convert to UTC for interval calculations (to match database)
+        $first = $first->copy()->setTimezone('UTC');
+        $last = $last->copy()->setTimezone('UTC');
 
         // Calculate the timespan between the first and last event.
         $timespan = $this->calculateTimespan($first, $last);
@@ -95,7 +100,8 @@ class CampaignReportPresenter
         $secondsPerInterval = $this->calculateSecondsInterval($timespan);
 
         // Modify first so that it matches with the database intervals (i.e. using DIV in mysql).
-        $first = Carbon::createFromTimestamp(floor($first->timestamp / $secondsPerInterval) * $secondsPerInterval);
+        // Keep in UTC to match database period_start format
+        $first = Carbon::createFromTimestamp(floor($first->timestamp / $secondsPerInterval) * $secondsPerInterval, 'UTC');
 
         // Create the PHP DateTime intervals.
         $intervals = $this->createIntervals($first, $last, $timespan);
@@ -159,10 +165,12 @@ class CampaignReportPresenter
 
     /**
      * Calculate the first and last timestamps.
+     * Note: Returns dates in UTC to match database format.
      */
     private function calculateFirstLast(string $first, int $interval): array
     {
-        $cFirst = Carbon::parse($first);
+        // Parse in UTC to match database storage
+        $cFirst = Carbon::parse($first)->setTimezone('UTC');
         $last = $cFirst->copy()->addHours($interval);
 
         return [$cFirst->copy()->startOfHour(), $last->copy()->endOfHour()];
@@ -245,12 +253,21 @@ class CampaignReportPresenter
     private function populatePeriods(Collection $opensPerPeriod, DatePeriod $intervals): array
     {
         $periods = [];
+        $timezone = config('app.timezone', 'UTC');
 
         // Create an array periods, where the key for each item is the date.
-        /** @var Carbon $interval */
+        // Note: Database returns period_start in UTC, so we need to match with UTC format
         foreach ($intervals as $interval) {
-            $periods[$interval->format('Y-m-d H:i:s')] = [
-                'opened_at' => $interval->format('d-M H:i'),
+            // Convert DateTime to Carbon for timezone manipulation
+            $carbonInterval = Carbon::instance($interval);
+            
+            // Format key in UTC to match database period_start
+            $utcKey = $carbonInterval->copy()->setTimezone('UTC')->format('Y-m-d H:i:s');
+            // Format label in application timezone for display
+            $labelInTimezone = $carbonInterval->copy()->setTimezone($timezone)->format('d-M H:i');
+            
+            $periods[$utcKey] = [
+                'opened_at' => $labelInTimezone,
                 'open_count' => 0,
             ];
         }
@@ -258,8 +275,10 @@ class CampaignReportPresenter
         // Populate the actual opens per period into the intervals.
         if ($opensPerPeriod) {
             foreach ($opensPerPeriod as $item) {
-                if (array_key_exists($item->period_start, $periods)) {
-                    $periods[$item->period_start]['open_count'] = $item->open_count;
+                // Ensure period_start is in UTC format for matching
+                $periodKey = Carbon::parse($item->period_start)->setTimezone('UTC')->format('Y-m-d H:i:s');
+                if (array_key_exists($periodKey, $periods)) {
+                    $periods[$periodKey]['open_count'] = $item->open_count;
                 }
             }
         }
