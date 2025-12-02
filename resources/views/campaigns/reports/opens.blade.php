@@ -55,7 +55,7 @@
                 <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
                 <input type="hidden" name="tag_label" id="opens-tag-label">
 
-                <div class="card">
+            <div class="card">
                     <div class="card-body pb-0">
                         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between mb-3">
                             <h5 class="mb-2 mb-md-0">{{ __('Danh sách mở mail') }}</h5>
@@ -67,22 +67,22 @@
                         </div>
                     </div>
 
-                    <div class="card-table table-responsive">
+                <div class="card-table table-responsive">
                         @php
                             $currentSort = request()->get('sort', 'opened_at');
                             $currentDirection = request()->get('direction', 'asc');
                             $openCountDirection = $currentSort === 'open_count' && $currentDirection === 'asc' ? 'desc' : 'asc';
                             $openCountQuery = array_merge(request()->except(['page', 'sort', 'direction']), ['sort' => 'open_count', 'direction' => $openCountDirection]);
                         @endphp
-                        <table class="table">
-                            <thead>
-                            <tr>
+                    <table class="table">
+                        <thead>
+                        <tr>
                                 <th style="width: 50px;">
                                     <input type="checkbox" id="opens-select-all">
                                 </th>
-                                <th>{{ __('Subscriber') }}</th>
-                                <th>{{ __('Subject') }}</th>
-                                <th>{{ __('Opened') }}</th>
+                            <th>{{ __('Subscriber') }}</th>
+                            <th>{{ __('Subject') }}</th>
+                            <th>{{ __('Opened') }}</th>
                                 <th>
                                     <a href="{{ route('sendportal.campaigns.reports.opens', array_merge(['id' => $campaign->id], $openCountQuery)) }}" class="text-reset text-decoration-none">
                                         {{ __('Open Count') }}
@@ -93,33 +93,33 @@
                                         @endif
                                     </a>
                                 </th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @forelse($messages as $message)
-                                <tr>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($messages as $message)
+                            <tr>
                                     <td>
                                         <input type="checkbox" name="message_ids[]" value="{{ $message->id }}" class="opens-message-checkbox">
                                     </td>
-                                    <td>
-                                        <a href="{{ route('sendportal.subscribers.show', $message->subscriber_id) }}">{{ $message->recipient_email }}</a>
-                                    </td>
-                                    <td>{{ $message->subject }}</td>
-                                    <td>{{ \Sendportal\Base\Facades\Helper::displayDate($message->opened_at) }}</td>
-                                    <td>{{ $message->open_count }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="100%">
-                                        <p class="empty-table-text">{{ __('There are no messages') }}</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                            </tbody>
-                        </table>
+                                <td>
+                                    <a href="{{ route('sendportal.subscribers.show', $message->subscriber_id) }}">{{ $message->recipient_email }}</a>
+                                </td>
+                                <td>{{ $message->subject }}</td>
+                                <td>{{ \Sendportal\Base\Facades\Helper::displayDate($message->opened_at) }}</td>
+                                <td>{{ $message->open_count }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="100%">
+                                    <p class="empty-table-text">{{ __('There are no messages') }}</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
 
-                    </div>
                 </div>
+            </div>
             </form>
         </div>
     </div>

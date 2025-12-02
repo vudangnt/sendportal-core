@@ -52,7 +52,7 @@
         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
         <input type="hidden" name="tag_label" id="clicks-tag-label">
 
-        <div class="card">
+    <div class="card">
             <div class="card-body pb-0">
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between mb-3">
                     <h5 class="mb-2 mb-md-0">{{ __('Danh sách click link') }}</h5>
@@ -63,22 +63,22 @@
                     </div>
                 </div>
             </div>
-            <div class="card-table table-responsive">
+        <div class="card-table table-responsive">
                 @php
                     $currentSort = request()->get('sort', 'clicked_at');
                     $currentDirection = request()->get('direction', 'asc');
                     $clickCountDirection = $currentSort === 'click_count' && $currentDirection === 'asc' ? 'desc' : 'asc';
                     $clickCountQuery = array_merge(request()->except(['page', 'sort', 'direction']), ['sort' => 'click_count', 'direction' => $clickCountDirection]);
                 @endphp
-                <table class="table">
-                    <thead>
-                    <tr>
+            <table class="table">
+                <thead>
+                <tr>
                         <th style="width: 50px;">
                             <input type="checkbox" id="clicks-select-all">
                         </th>
-                        <th>{{ __('Subscriber') }}</th>
-                        <th>{{ __('Subject') }}</th>
-                        <th>{{ __('Clicked') }}</th>
+                    <th>{{ __('Subscriber') }}</th>
+                    <th>{{ __('Subject') }}</th>
+                    <th>{{ __('Clicked') }}</th>
                         <th>
                             <a href="{{ route('sendportal.campaigns.reports.clicks', array_merge(['id' => $campaign->id], $clickCountQuery)) }}" class="text-reset text-decoration-none">
                                 {{ __('Click Count') }}
@@ -89,32 +89,32 @@
                                 @endif
                             </a>
                         </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @forelse($messages as $message)
-                        <tr>
+                </tr>
+                </thead>
+                <tbody>
+                @forelse($messages as $message)
+                    <tr>
                             <td>
                                 <input type="checkbox" name="message_ids[]" value="{{ $message->id }}" class="clicks-message-checkbox">
                             </td>
-                            <td>
-                                <a href="{{ route('sendportal.subscribers.show', $message->subscriber_id) }}">{{ $message->recipient_email }}</a>
-                            </td>
-                            <td>{{ $message->subject }}</td>
-                            <td>{{ \Sendportal\Base\Facades\Helper::displayDate($message->clicked_at) }}</td>
-                            <td>{{ $message->click_count }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="100%">
-                                <p class="empty-table-text">{{ __('There are no messages') }}</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
+                        <td>
+                            <a href="{{ route('sendportal.subscribers.show', $message->subscriber_id) }}">{{ $message->recipient_email }}</a>
+                        </td>
+                        <td>{{ $message->subject }}</td>
+                        <td>{{ \Sendportal\Base\Facades\Helper::displayDate($message->clicked_at) }}</td>
+                        <td>{{ $message->click_count }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="100%">
+                            <p class="empty-table-text">{{ __('There are no messages') }}</p>
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
         </div>
+    </div>
     </form>
 
     @include('sendportal::layouts.partials.pagination', ['records' => $messages])

@@ -292,6 +292,21 @@ abstract class BaseTenantRepository implements BaseTenantInterface
     }
 
     /**
+     * Force delete a record (permanently delete)
+     *
+     * @param int $workspaceId
+     * @param int $id
+     * @return mixed
+     * @throws Exception
+     */
+    public function forceDelete($workspaceId, $id)
+    {
+        $instance = $this->find($workspaceId, $id);
+
+        return $instance->forceDelete();
+    }
+
+    /**
      * Count of all records
      *
      * @return int

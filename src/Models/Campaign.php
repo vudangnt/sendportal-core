@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -65,7 +66,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class Campaign extends BaseModel
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     // NOTE(david): we require this because of namespace issues when resolving factories from models
     // not in the default `App\Models` namespace.

@@ -101,7 +101,7 @@ class HandleSesWebhook implements ShouldQueue
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-examples.html#event-publishing-retrieving-sns-click
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-contents.html#event-publishing-retrieving-sns-contents-click-object
         $link = Arr::get($event, 'click.link');
-        $timestamp = Carbon::parse(Arr::get($event, 'click.timestamp'));
+        $timestamp = Carbon::parse(Arr::get($event, 'click.timestamp'))->setTimezone('UTC');
 
         $this->emailWebhookService->handleClick($messageId, $timestamp, $link);
     }
@@ -114,7 +114,7 @@ class HandleSesWebhook implements ShouldQueue
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-contents.html#event-publishing-retrieving-sns-contents-open-object
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-examples.html#event-publishing-retrieving-sns-open
         $ipAddress = Arr::get($event, 'open.ipAddress');
-        $timestamp = Carbon::parse(Arr::get($event, 'open.timestamp'));
+        $timestamp = Carbon::parse(Arr::get($event, 'open.timestamp'))->setTimezone('UTC');
 
         $this->emailWebhookService->handleOpen($messageId, $timestamp, $ipAddress);
     }
@@ -129,7 +129,7 @@ class HandleSesWebhook implements ShouldQueue
     {
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/ses/latest/DeveloperGuide/ses/latest/DeveloperGuide/notification-contents.html.html#delivery-object
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-examples.html#event-publishing-retrieving-sns-delivery
-        $timestamp = Carbon::parse(Arr::get($event, 'delivery.timestamp'));
+        $timestamp = Carbon::parse(Arr::get($event, 'delivery.timestamp'))->setTimezone('UTC');
 
         $this->emailWebhookService->handleDelivery($messageId, $timestamp);
     }
@@ -149,7 +149,7 @@ class HandleSesWebhook implements ShouldQueue
         //
         // https://aws.amazon.com/blogs/messaging-and-targeting/handling-bounces-and-complaints/
 
-        $timestamp = Carbon::parse(Arr::get($event, 'complaint.timestamp'));
+        $timestamp = Carbon::parse(Arr::get($event, 'complaint.timestamp'))->setTimezone('UTC');
 
         $this->emailWebhookService->handleComplaint($messageId, $timestamp);
     }
@@ -158,7 +158,7 @@ class HandleSesWebhook implements ShouldQueue
     {
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#bounce-object
         $bounceType = Arr::get($event, 'bounce.bounceType');
-        $timestamp = Carbon::parse(Arr::get($event, 'bounce.timestamp'));
+        $timestamp = Carbon::parse(Arr::get($event, 'bounce.timestamp'))->setTimezone('UTC');
 
         // https://aws.amazon.com/blogs/messaging-and-targeting/handling-bounces-and-complaints/
         if (strtolower($bounceType) === 'permanent') {

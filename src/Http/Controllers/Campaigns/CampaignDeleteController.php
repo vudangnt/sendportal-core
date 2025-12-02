@@ -32,11 +32,6 @@ class CampaignDeleteController extends Controller
     {
         $campaign = $this->campaigns->find(Sendportal::currentWorkspaceId(), $id);
 
-        if (!$campaign->draft) {
-            return redirect()->route('sendportal.campaigns.index')
-                ->withErrors(__('Unable to delete a campaign that is not in draft status'));
-        }
-
         return view('sendportal::campaigns.delete', compact('campaign'));
     }
 
@@ -45,18 +40,32 @@ class CampaignDeleteController extends Controller
      *
      * @throws Exception
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, int $id): RedirectResponse
     {
-        $campaign = $this->campaigns->find(Sendportal::currentWorkspaceId(), $request->get('id'));
+        $request->validate([
+            'delete_type' => 'nullable|in:hide,force',
+        ]);
 
-        if (!$campaign->draft) {
-            return redirect()->route('sendportal.campaigns.index')
-                ->withErrors(__('Unable to delete a campaign that is not in draft status'));
+        $campaign = $this->campaigns->find(Sendportal::currentWorkspaceId(), $id);
+        $deleteType = $request->get('delete_type', 'hide'); // Default to 'hide' if not provided
+
+        if ($deleteType === 'force') {
+            // Force delete - xóa vĩnh viễn
+            if (!$campaign->draft) {
+                return redirect()->route('sendportal.campaigns.index')
+                    ->withErrors(__('Chỉ có thể xóa vĩnh viễn campaign ở trạng thái draft.'));
+            }
+            
+            // Force delete directly from model
+            $campaign->forceDelete();
+            $message = __('Campaign đã được xóa vĩnh viễn.');
+        } else {
+            // Soft delete - ẩn campaign (default)
+            $this->campaigns->destroy(Sendportal::currentWorkspaceId(), $id);
+            $message = __('Campaign đã được ẩn.');
         }
 
-        $this->campaigns->destroy(Sendportal::currentWorkspaceId(), $request->get('id'));
-
         return redirect()->route('sendportal.campaigns.index')
-            ->with('success', __('The Campaign has been successfully deleted'));
+            ->with('success', $message);
     }
 }

@@ -226,8 +226,8 @@ class CreateMessages
         ];
 
         try {
-            $message = new Message($attributes);
-            $message->save();
+        $message = new Message($attributes);
+        $message->save();
 
             \Log::info('Email message created successfully', [
                 'message_id' => $message->id,
@@ -235,9 +235,9 @@ class CreateMessages
                 'subscriber_id' => $subscriber->id,
             ]);
 
-            event(new MessageDispatchEvent($message));
+        event(new MessageDispatchEvent($message));
 
-            return $message;
+        return $message;
         } catch (\Exception $e) {
             \Log::error('Failed to create email message', [
                 'campaign_id' => $campaign->id,

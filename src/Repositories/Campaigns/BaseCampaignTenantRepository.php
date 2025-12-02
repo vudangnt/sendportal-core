@@ -38,6 +38,7 @@ abstract class BaseCampaignTenantRepository extends BaseTenantRepository impleme
     public function getCounts(Collection $campaignIds, int $workspaceId): array
     {
         $counts = DB::table('sendportal_campaigns')
+            ->whereNull('sendportal_campaigns.deleted_at') // Filter out soft deleted campaigns
             ->leftJoin('sendportal_messages', function ($join) use ($campaignIds, $workspaceId) {
                 $join->on('sendportal_messages.source_id', '=', 'sendportal_campaigns.id')
                     ->where('sendportal_messages.source_type', Campaign::class)

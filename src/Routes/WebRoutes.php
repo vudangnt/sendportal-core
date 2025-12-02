@@ -69,7 +69,7 @@ class WebRoutes
                         '{id}/confirm-delete',
                         'CampaignDeleteController@confirm'
                     )->name('destroy.confirm');
-                    $campaignRouter->delete('', 'CampaignDeleteController@destroy')->name('destroy');
+                    $campaignRouter->delete('{id}', 'CampaignDeleteController@destroy')->name('destroy');
 
                     $campaignRouter->get('{id}/duplicate', 'CampaignDuplicateController@duplicate')->name('duplicate');
 

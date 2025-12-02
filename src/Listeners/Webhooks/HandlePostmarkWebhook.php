@@ -139,6 +139,6 @@ class HandlePostmarkWebhook implements ShouldQueue
 
     private function extractTimestamp(array $payload, string $field = 'ReceivedAt'): Carbon
     {
-        return Carbon::parse(Arr::get($payload, $field));
+        return Carbon::parse(Arr::get($payload, $field))->setTimezone('UTC');
     }
 }

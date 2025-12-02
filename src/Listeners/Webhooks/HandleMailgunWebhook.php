@@ -150,7 +150,7 @@ class HandleMailgunWebhook implements ShouldQueue
 
     private function extractTimestamp($payload): Carbon
     {
-        return Carbon::createFromTimestamp(Arr::get($payload, 'event-data.timestamp'));
+        return Carbon::createFromTimestamp(Arr::get($payload, 'event-data.timestamp'), 'UTC');
     }
 
     private function extractFailureDescription(array $payload): string

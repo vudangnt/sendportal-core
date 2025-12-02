@@ -163,6 +163,6 @@ class HandleSendgridWebhook implements ShouldQueue
 
     private function extractTimestamp($payload): Carbon
     {
-        return Carbon::createFromTimestamp(Arr::get($payload, 'timestamp'));
+        return Carbon::createFromTimestamp(Arr::get($payload, 'timestamp'), 'UTC');
     }
 }

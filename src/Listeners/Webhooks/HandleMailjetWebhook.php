@@ -189,6 +189,6 @@ class HandleMailjetWebhook implements ShouldQueue
 
     private function extractTimestamp(array $payload): Carbon
     {
-        return Carbon::parse(Arr::get($payload, 'time'));
+        return Carbon::parse(Arr::get($payload, 'time'))->setTimezone('UTC');
     }
 }

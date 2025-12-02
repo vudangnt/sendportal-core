@@ -145,16 +145,16 @@ class HandlePostalWebhook implements ShouldQueue
 
     private function extractTimestampBounced($payload): Carbon
     {
-        return Carbon::createFromTimestamp(Arr::get($payload, 'payload.bounce.timestamp'));
+        return Carbon::createFromTimestamp(Arr::get($payload, 'payload.bounce.timestamp'), 'UTC');
     }
     
     private function extractTimestampFailed($payload): Carbon
     {
-        return Carbon::createFromTimestamp(Arr::get($payload, 'payload.timestamp'));
+        return Carbon::createFromTimestamp(Arr::get($payload, 'payload.timestamp'), 'UTC');
     }
     
     private function extractTimestamp($payload): Carbon
     {
-        return Carbon::createFromTimestamp(Arr::get($payload, 'timestamp'));
+        return Carbon::createFromTimestamp(Arr::get($payload, 'timestamp'), 'UTC');
     }
 }
