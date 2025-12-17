@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $id
@@ -77,5 +78,62 @@ class Tag extends BaseModel
     public function child(): HasMany
     {
         return $this->hasMany(Tag::class, 'parent_id');
+    }
+
+    /**
+     * Get total active subscribers count including child tags (without duplicates).
+     * 
+     * @return int
+     */
+    public function getTotalActiveSubscribersCountAttribute(): int
+    {
+        // Get all child tag IDs recursively
+        $childTagIds = $this->getAllChildTagIds();
+        
+        // Get all tag IDs (parent + children)
+        $allTagIds = array_merge([$this->id], $childTagIds);
+        
+        // If no child tags, just return the direct count
+        if (empty($childTagIds)) {
+            return $this->active_subscribers_count ?? 0;
+        }
+        
+        // Count unique active subscribers across all tags using subquery to avoid duplicates
+        // This ensures each subscriber is counted only once even if they have multiple tags
+        // Using subquery with distinct is more efficient than loading all records
+        $uniqueSubscriberIds = DB::table('sendportal_tag_subscriber')
+            ->whereIn('tag_id', $allTagIds)
+            ->distinct()
+            ->pluck('subscriber_id');
+        
+        if ($uniqueSubscriberIds->isEmpty()) {
+            return 0;
+        }
+        
+        // Count only active subscribers from the unique list
+        return Subscriber::whereIn('id', $uniqueSubscriberIds)
+            ->whereNull('unsubscribed_at')
+            ->where('workspace_id', $this->workspace_id)
+            ->count();
+    }
+
+    /**
+     * Get all child tag IDs recursively.
+     * 
+     * @return array
+     */
+    protected function getAllChildTagIds(): array
+    {
+        $childTagIds = [];
+        
+        $children = $this->child()->get();
+        
+        foreach ($children as $child) {
+            $childTagIds[] = $child->id;
+            // Recursively get grandchildren
+            $childTagIds = array_merge($childTagIds, $child->getAllChildTagIds());
+        }
+        
+        return $childTagIds;
     }
 }

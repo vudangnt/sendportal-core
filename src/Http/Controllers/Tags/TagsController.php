@@ -29,7 +29,9 @@ class TagsController extends Controller
      */
     public function index(): View
     {
-        $tags = $this->tagRepository->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $tags = $this->tagRepository->all($workspaceId, 'name')->toArray();
+        
         foreach ($tags as $key => $tag) {
             if ($tag['parent_id'] === 0) {
                 foreach ($tags as $child) {
@@ -37,18 +39,26 @@ class TagsController extends Controller
                         $tags[$key]['children'][] = $child;
                     }
                 }
+                
+                // Calculate total active subscribers count including child tags
+                $tagModel = $this->tagRepository->find($workspaceId, $tag['id']);
+                if ($tagModel) {
+                    $tags[$key]['active_subscribers_count'] = $tagModel->total_active_subscribers_count;
+                }
             }
         }
+        
         // Hàm lọc
         $tags = array_filter($tags, function ($item) {
             return $item['parent_id'] === 0;
         });
+        
         return view('sendportal::tags.index', compact('tags'));
     }
 
     public function create(): View
     {
-        $parentTags = $this->tagRepository->getQueryBuilder(Sendportal::currentWorkspaceId())->where('parent_id', 0)->get(Sendportal::currentWorkspaceId());
+        $parentTags = $this->tagRepository->getQueryBuilder(Sendportal::currentWorkspaceId())->where('parent_id', 0)->get();
         return view('sendportal::tags.create', compact('parentTags'));
     }
 
