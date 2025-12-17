@@ -206,8 +206,9 @@ class CampaignsController extends Controller
             return redirect()->route('sendportal.campaigns.status', $id);
         }
 
-        $tags = $this->tags->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
-        $locations = $this->locations->all(Sendportal::currentWorkspaceId(), 'name')->toArray();
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $tags = $this->tags->all($workspaceId, 'name')->toArray();
+        $locations = $this->locations->all($workspaceId, 'name')->toArray();
 
         foreach ($tags as $key => $tag) {
             if ($tag['parent_id'] === 0) {
@@ -217,6 +218,12 @@ class CampaignsController extends Controller
                     }
                 }
                 $tags[$key]['child_count'] = count($tags[$key]['child']??[]);
+                
+                // Calculate total active subscribers count including child tags
+                $tagModel = $this->tags->find($workspaceId, $tag['id']);
+                if ($tagModel) {
+                    $tags[$key]['active_subscribers_count'] = $tagModel->total_active_subscribers_count;
+                }
             }
         }
         // Hàm lọc
@@ -233,6 +240,12 @@ class CampaignsController extends Controller
                     }
                 }
                 $locations[$key]['child_count'] = count($locations[$key]['child']??[]);
+                
+                // Calculate total active subscribers count including child locations
+                $locationModel = $this->locations->find($workspaceId, $location['id']);
+                if ($locationModel) {
+                    $locations[$key]['active_subscribers_count'] = $locationModel->total_active_subscribers_count;
+                }
             }
         }
         // Hàm lọc
