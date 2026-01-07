@@ -50,7 +50,19 @@ class TrackImportProgressJob implements ShouldQueue
         }
 
         $elapsed = now()->diffInSeconds($startTime);
+        
+        // Tránh lỗi division by zero khi elapsed = 0
+        if ($elapsed === 0) {
+            return null;
+        }
+
         $rate = $this->completedChunks / $elapsed;
+        
+        // Tránh lỗi division by zero khi rate = 0
+        if ($rate === 0) {
+            return null;
+        }
+        
         $remaining = ($this->totalChunks - $this->completedChunks) / $rate;
 
         return ceil($remaining);

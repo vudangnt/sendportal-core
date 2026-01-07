@@ -46,6 +46,14 @@ class ImportSubscribersJob implements ShouldQueue
     {
         foreach ($this->subscribers as $row) {
             try {
+                // Kiểm tra email có tồn tại và không rỗng
+                if (empty($row['email'] ?? null)) {
+                    Log::warning('Skipping subscriber with missing or empty email', [
+                        'row' => $row
+                    ]);
+                    continue;
+                }
+
                 $data = [
                     'id' => $row['id'] ?? null,
                     'email' => $row['email'],
