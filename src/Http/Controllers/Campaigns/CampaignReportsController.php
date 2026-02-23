@@ -267,6 +267,11 @@ class CampaignReportsController extends Controller
         $campaign = $this->campaignRepo->find(Sendportal::currentWorkspaceId(), $id);
         $template = $campaign->template;
 
+        if (!$template) {
+            return redirect()->route('sendportal.campaigns.reports.index', $id)
+                ->with('error', __('Campaign has no template associated.'));
+        }
+
         return view('sendportal::campaigns.reports.templates', compact('campaign', 'template'));
     }
 

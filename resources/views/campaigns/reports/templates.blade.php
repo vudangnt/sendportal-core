@@ -12,7 +12,7 @@
             <div class="card">
                 <div class="card-header">
                     <div class="float-left">
-                        {{ $template->name }}
+                        {{ $template?->name ?? __('No template') }}
                     </div>
 {{--                    <div class="float-right">--}}
 {{--                        @if ( ! $template->is_in_use)--}}
