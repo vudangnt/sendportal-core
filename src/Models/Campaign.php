@@ -117,6 +117,30 @@ class Campaign extends BaseModel
         return $this->belongsToMany(Location::class, 'sendportal_campaign_location')->withTimestamps();
     }
 
+    /**
+     * Skills this campaign was sent to.
+     */
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class, 'sendportal_campaign_skill')->withTimestamps();
+    }
+
+    /**
+     * Industries this campaign was sent to.
+     */
+    public function industries(): BelongsToMany
+    {
+        return $this->belongsToMany(Industry::class, 'sendportal_campaign_industry')->withTimestamps();
+    }
+
+    /**
+     * Levels this campaign was sent to.
+     */
+    public function levels(): BelongsToMany
+    {
+        return $this->belongsToMany(Level::class, 'sendportal_campaign_level')->withTimestamps();
+    }
+
 
     /**
      * Status of the campaign.

@@ -18,6 +18,9 @@ class SubscriberUpdateRequest extends FormRequest
             'locations' => ['nullable', 'array'],
             'category' => ['nullable', 'string'],
             'location' => ['nullable', 'string'],
+            'skills' => ['nullable', 'string'],
+            'industries' => ['nullable', 'string'],
+            'level' => ['nullable', 'string'],
             'unsubscribed_at' => ['nullable', 'date'],
         ];
     }

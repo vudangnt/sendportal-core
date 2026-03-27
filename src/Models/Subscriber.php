@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Ramsey\Uuid\Uuid;
+use Sendportal\Base\Models\Skill;
+use Sendportal\Base\Models\Industry;
+use Sendportal\Base\Models\Level;
 
 /**
  * @property int $id
@@ -73,6 +76,9 @@ class Subscriber extends BaseModel
             function (self $subscriber) {
                 $subscriber->tags()->detach();
                 $subscriber->locations()->detach();
+                $subscriber->skills()->detach();
+                $subscriber->industries()->detach();
+                $subscriber->levels()->detach();
                 $subscriber->messages()->each(static function (Message $message) {
                     $message->failures()->delete();
                 });
@@ -89,6 +95,21 @@ class Subscriber extends BaseModel
     public function locations(): BelongsToMany
     {
         return $this->belongsToMany(Location::class, 'sendportal_location_subscriber')->withTimestamps();
+    }
+
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class, 'sendportal_skill_subscriber')->withTimestamps();
+    }
+
+    public function industries(): BelongsToMany
+    {
+        return $this->belongsToMany(Industry::class, 'sendportal_industry_subscriber')->withTimestamps();
+    }
+
+    public function levels(): BelongsToMany
+    {
+        return $this->belongsToMany(Level::class, 'sendportal_level_subscriber')->withTimestamps();
     }
 
     public function messages(): HasMany

@@ -21,6 +21,9 @@ use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\SubscribersImportRequest;
 use Sendportal\Base\Repositories\TagTenantRepository;
 use Sendportal\Base\Repositories\LocationTenantRepository;
+use Sendportal\Base\Repositories\SkillTenantRepository;
+use Sendportal\Base\Repositories\IndustryTenantRepository;
+use Sendportal\Base\Repositories\LevelTenantRepository;
 use Sendportal\Base\Services\Subscribers\ImportSubscriberService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -41,12 +44,21 @@ class SubscribersImportController extends Controller
     /**
      * @throws Exception
      */
-    public function show(TagTenantRepository $tagRepo, LocationTenantRepository $locationRepo): ViewContract
-    {
-        $tags = $tagRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
-        $locations = $locationRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
+    public function show(
+        TagTenantRepository $tagRepo,
+        LocationTenantRepository $locationRepo,
+        SkillTenantRepository $skillRepo,
+        IndustryTenantRepository $industryRepo,
+        LevelTenantRepository $levelRepo
+    ): ViewContract {
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $tags = $tagRepo->pluck($workspaceId, 'name', 'id');
+        $locations = $locationRepo->pluck($workspaceId, 'name', 'id');
+        $skills = $skillRepo->pluck($workspaceId, 'name', 'id');
+        $industries = $industryRepo->pluck($workspaceId, 'name', 'id');
+        $levels = $levelRepo->pluck($workspaceId, 'name', 'id');
 
-        return view('sendportal::subscribers.import', compact('tags', 'locations'));
+        return view('sendportal::subscribers.import', compact('tags', 'locations', 'skills', 'industries', 'levels'));
     }
 
     /**
@@ -86,6 +98,9 @@ class SubscribersImportController extends Controller
                     $workspaceId,
                     $request->get('tags') ?? [],
                     $request->get('locations') ?? [],
+                    $request->get('skills') ?? [],
+                    $request->get('industries') ?? [],
+                    $request->get('levels') ?? [],
                     $index + 1,  // Chunk hiện tại
                     $totalChunks // Tổng số chunks
                 )->onQueue('default');

@@ -50,7 +50,7 @@ class SubscribersController extends Controller
         $workspaceId = Sendportal::currentWorkspaceId();
         $subscriber = $this->apiService->storeOrUpdate($workspaceId, collect($request->validated()));
 
-        $subscriber->load(['tags', 'locations']);
+        $subscriber->load(['tags', 'locations', 'skills', 'industries', 'levels']);
 
         return new SubscriberResource($subscriber);
     }
@@ -62,7 +62,7 @@ class SubscribersController extends Controller
     {
         $workspaceId = Sendportal::currentWorkspaceId();
 
-        return new SubscriberResource($this->subscribers->find($workspaceId, $id, ['tags']));
+        return new SubscriberResource($this->subscribers->find($workspaceId, $id, ['tags', 'locations', 'skills', 'industries', 'levels']));
     }
 
     /**
@@ -73,7 +73,7 @@ class SubscribersController extends Controller
         $workspaceId = Sendportal::currentWorkspaceId();
         $subscriber = $this->subscribers->update($workspaceId, $id, $request->validated());
 
-        $subscriber->load(['tags', 'locations']);
+        $subscriber->load(['tags', 'locations', 'skills', 'industries', 'levels']);
 
         return new SubscriberResource($subscriber);
     }

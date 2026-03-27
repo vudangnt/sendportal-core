@@ -23,6 +23,9 @@ class ImportSubscribersJob implements ShouldQueue
     protected $workspaceId;
     protected $tags;
     protected $locations;
+    protected $skills;
+    protected $industries;
+    protected $levels;
     protected $currentChunk;
     protected $totalChunks;
 
@@ -31,6 +34,9 @@ class ImportSubscribersJob implements ShouldQueue
         int $workspaceId, 
         array $tags, 
         array $locations,
+        array $skills,
+        array $industries,
+        array $levels,
         int $currentChunk,
         int $totalChunks
     ) {
@@ -38,6 +44,9 @@ class ImportSubscribersJob implements ShouldQueue
         $this->workspaceId = $workspaceId;
         $this->tags = $tags;
         $this->locations = $locations;
+        $this->skills = $skills;
+        $this->industries = $industries;
+        $this->levels = $levels;
         $this->currentChunk = $currentChunk;
         $this->totalChunks = $totalChunks;
     }
@@ -60,7 +69,10 @@ class ImportSubscribersJob implements ShouldQueue
                     'first_name' => $row['first_name'] ?? null,
                     'last_name' => $row['last_name'] ?? null,
                     'tags' => $this->tags,
-                    'locations' => $this->locations
+                    'locations' => $this->locations,
+                    'skills' => $this->skills,
+                    'industries' => $this->industries,
+                    'levels' => $this->levels,
                 ];
 
                 $importService->import($this->workspaceId, $data);

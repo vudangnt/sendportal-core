@@ -39,6 +39,18 @@ class SubscriberRequest extends FormRequest
                 'nullable',
                 'array',
             ],
+            'skills' => [
+                'nullable',
+                'array',
+            ],
+            'industries' => [
+                'nullable',
+                'array',
+            ],
+            'levels' => [
+                'nullable',
+                'array',
+            ],
         ];
     }
 }

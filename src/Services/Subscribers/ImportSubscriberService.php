@@ -38,6 +38,18 @@ class ImportSubscriberService
 
         $data['tags'] = array_merge($subscriber->tags->pluck('id')->toArray(), Arr::get($data, 'tags', []));
         $data['locations'] = array_merge($subscriber->locations->pluck('id')->toArray(), Arr::get($data, 'locations', []));
+        $data['skills'] = array_merge(
+            $subscriber->skills ? $subscriber->skills->pluck('id')->toArray() : [],
+            Arr::get($data, 'skills', [])
+        );
+        $data['industries'] = array_merge(
+            $subscriber->industries ? $subscriber->industries->pluck('id')->toArray() : [],
+            Arr::get($data, 'industries', [])
+        );
+        $data['levels'] = array_merge(
+            $subscriber->levels ? $subscriber->levels->pluck('id')->toArray() : [],
+            Arr::get($data, 'levels', [])
+        );
 
         $this->subscribers->update($workspaceId, $subscriber->id, $data);
 

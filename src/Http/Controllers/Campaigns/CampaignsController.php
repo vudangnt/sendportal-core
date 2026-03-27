@@ -14,7 +14,10 @@ use Sendportal\Base\Http\Requests\CampaignStoreRequest;
 use Sendportal\Base\Models\EmailService;
 use Sendportal\Base\Repositories\Campaigns\CampaignTenantRepositoryInterface;
 use Sendportal\Base\Repositories\EmailServiceTenantRepository;
+use Sendportal\Base\Repositories\IndustryTenantRepository;
+use Sendportal\Base\Repositories\LevelTenantRepository;
 use Sendportal\Base\Repositories\LocationTenantRepository;
+use Sendportal\Base\Repositories\SkillTenantRepository;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
 use Sendportal\Base\Repositories\TagTenantRepository;
 use Sendportal\Base\Repositories\TemplateTenantRepository;
@@ -42,6 +45,9 @@ class CampaignsController extends Controller
      */
     protected $campaignStatisticsService;
     private LocationTenantRepository $locations;
+    private SkillTenantRepository $skills;
+    private IndustryTenantRepository $industries;
+    private LevelTenantRepository $levels;
 
     public function __construct(
         CampaignTenantRepositoryInterface $campaigns,
@@ -50,7 +56,10 @@ class CampaignsController extends Controller
         LocationTenantRepository $locations,
         EmailServiceTenantRepository $emailServices,
         SubscriberTenantRepositoryInterface $subscribers,
-        CampaignStatisticsService $campaignStatisticsService
+        CampaignStatisticsService $campaignStatisticsService,
+        SkillTenantRepository $skills,
+        IndustryTenantRepository $industries,
+        LevelTenantRepository $levels
     ) {
         $this->campaigns = $campaigns;
         $this->templates = $templates;
@@ -59,6 +68,9 @@ class CampaignsController extends Controller
         $this->emailServices = $emailServices;
         $this->subscribers = $subscribers;
         $this->campaignStatisticsService = $campaignStatisticsService;
+        $this->skills = $skills;
+        $this->industries = $industries;
+        $this->levels = $levels;
     }
 
     /**
@@ -252,7 +264,17 @@ class CampaignsController extends Controller
         $locations = array_filter($locations, function ($item) {
             return $item['parent_id'] === 0;
         });
-        return view('sendportal::campaigns.preview', compact('campaign', 'tags', 'locations', 'subscriberCount'));
+
+        // Load skills
+        $skills = $this->skills->all($workspaceId, 'name')->toArray();
+
+        // Load industries
+        $industries = $this->industries->all($workspaceId, 'name')->toArray();
+
+        // Load levels
+        $levels = $this->levels->all($workspaceId, 'name')->toArray();
+
+        return view('sendportal::campaigns.preview', compact('campaign', 'tags', 'locations', 'skills', 'industries', 'levels', 'subscriberCount'));
     }
 
     /**

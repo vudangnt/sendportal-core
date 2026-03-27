@@ -18,7 +18,10 @@ use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\SubscriberRequest;
 use Sendportal\Base\Models\UnsubscribeEventType;
+use Sendportal\Base\Repositories\IndustryTenantRepository;
+use Sendportal\Base\Repositories\LevelTenantRepository;
 use Sendportal\Base\Repositories\LocationTenantRepository;
+use Sendportal\Base\Repositories\SkillTenantRepository;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
 use Sendportal\Base\Repositories\TagTenantRepository;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -31,15 +34,24 @@ class SubscribersController extends Controller
     /** @var TagTenantRepository */
     private $tagRepo;
     private $locationTenantRepository;
+    private $skillRepo;
+    private $industryRepo;
+    private $levelRepo;
 
     public function __construct(
         SubscriberTenantRepositoryInterface $subscriberRepo,
         TagTenantRepository $tagRepo,
         LocationTenantRepository $locationTenantRepository,
+        SkillTenantRepository $skillRepo,
+        IndustryTenantRepository $industryRepo,
+        LevelTenantRepository $levelRepo
     ) {
         $this->subscriberRepo = $subscriberRepo;
         $this->tagRepo = $tagRepo;
         $this->locationTenantRepository = $locationTenantRepository;
+        $this->skillRepo = $skillRepo;
+        $this->industryRepo = $industryRepo;
+        $this->levelRepo = $levelRepo;
     }
 
     /**
@@ -47,17 +59,21 @@ class SubscribersController extends Controller
      */
     public function index(): View
     {
+        $workspaceId = Sendportal::currentWorkspaceId();
         $subscribers = $this->subscriberRepo->paginate(
-            Sendportal::currentWorkspaceId(),
+            $workspaceId,
             'updated_atDesc',
-            ['tags','locations'],
+            ['tags', 'locations', 'skills', 'industries', 'levels'],
             100,
             request()->all()
         )->withQueryString();
-        $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
-        $locations = $this->locationTenantRepository->pluck(Sendportal::currentWorkspaceId(), 'name', 'id');
+        $tags = $this->tagRepo->pluck($workspaceId, 'name', 'id');
+        $locations = $this->locationTenantRepository->pluck($workspaceId, 'name', 'id');
+        $skills = $this->skillRepo->pluck($workspaceId, 'name', 'id');
+        $industries = $this->industryRepo->pluck($workspaceId, 'name', 'id');
+        $levels = $this->levelRepo->pluck($workspaceId, 'name', 'id');
 
-        return view('sendportal::subscribers.index', compact('subscribers', 'tags', 'locations'));
+        return view('sendportal::subscribers.index', compact('subscribers', 'tags', 'locations', 'skills', 'industries', 'levels'));
     }
 
     /**
@@ -65,14 +81,21 @@ class SubscribersController extends Controller
      */
     public function create(): View
     {
-        $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId());
-        $locations = $this->locationTenantRepository->pluck(Sendportal::currentWorkspaceId());
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $tags = $this->tagRepo->pluck($workspaceId);
+        $locations = $this->locationTenantRepository->pluck($workspaceId);
+        $skills = $this->skillRepo->pluck($workspaceId);
+        $industries = $this->industryRepo->pluck($workspaceId);
+        $levels = $this->levelRepo->pluck($workspaceId);
         $selectedTags = [];
         $selectedLocations = [];
+        $selectedSkills = [];
+        $selectedIndustries = [];
+        $selectedLevels = [];
 
         return view(
             'sendportal::subscribers.create',
-            compact('tags', 'locations', 'selectedTags', 'selectedLocations')
+            compact('tags', 'locations', 'skills', 'industries', 'levels', 'selectedTags', 'selectedLocations', 'selectedSkills', 'selectedIndustries', 'selectedLevels')
         );
     }
 
@@ -100,7 +123,7 @@ class SubscribersController extends Controller
         $subscriber = $this->subscriberRepo->find(
             Sendportal::currentWorkspaceId(),
             $id,
-            ['tags', 'messages.source']
+            ['tags', 'locations', 'skills', 'industries', 'levels', 'messages.source']
         );
 
         return view('sendportal::subscribers.show', compact('subscriber'));
@@ -111,13 +134,23 @@ class SubscribersController extends Controller
      */
     public function edit(int $id): View
     {
-        $subscriber = $this->subscriberRepo->find(Sendportal::currentWorkspaceId(), $id);
-        $tags = $this->tagRepo->pluck(Sendportal::currentWorkspaceId());
-        $locations = $this->locationTenantRepository->pluck(Sendportal::currentWorkspaceId());
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $subscriber = $this->subscriberRepo->find($workspaceId, $id);
+        $tags = $this->tagRepo->pluck($workspaceId);
+        $locations = $this->locationTenantRepository->pluck($workspaceId);
+        $skills = $this->skillRepo->pluck($workspaceId);
+        $industries = $this->industryRepo->pluck($workspaceId);
+        $levels = $this->levelRepo->pluck($workspaceId);
         $selectedTags = $subscriber->tags->pluck('name', 'id');
         $selectedLocations = $subscriber->locations->pluck('name', 'id');
+        $selectedSkills = $subscriber->skills->pluck('name', 'id');
+        $selectedIndustries = $subscriber->industries->pluck('name', 'id');
+        $selectedLevels = $subscriber->levels->pluck('name', 'id');
 
-        return view('sendportal::subscribers.edit', compact('subscriber', 'tags', 'locations','selectedTags','selectedLocations'));
+        return view('sendportal::subscribers.edit', compact(
+            'subscriber', 'tags', 'locations', 'skills', 'industries', 'levels',
+            'selectedTags', 'selectedLocations', 'selectedSkills', 'selectedIndustries', 'selectedLevels'
+        ));
     }
 
     /**
@@ -140,6 +173,18 @@ class SubscribersController extends Controller
 
         if (!$request->has('tags')) {
             $data['tags'] = [];
+        }
+        if (!$request->has('locations')) {
+            $data['locations'] = [];
+        }
+        if (!$request->has('skills')) {
+            $data['skills'] = [];
+        }
+        if (!$request->has('industries')) {
+            $data['industries'] = [];
+        }
+        if (!$request->has('levels')) {
+            $data['levels'] = [];
         }
 
         $this->subscriberRepo->update(Sendportal::currentWorkspaceId(), $id, $data);
@@ -189,9 +234,13 @@ class SubscribersController extends Controller
      * @throws WriterNotOpenedException
      * @throws Exception
      */
-    public function export()
+    public function export(Request $request)
     {
-        $subscribers = $this->subscriberRepo->all(Sendportal::currentWorkspaceId(), 'id');
+        $subscribers = $this->subscriberRepo->all(
+            Sendportal::currentWorkspaceId(),
+            'id',
+            ['tags', 'locations', 'skills', 'industries', 'levels']
+        );
 
         if (!$subscribers->count()) {
             return redirect()->route('sendportal.subscribers.index')->withErrors(
@@ -199,16 +248,35 @@ class SubscribersController extends Controller
             );
         }
 
+        // Get selected columns from request, default to basic columns
+        $columns = $request->get('columns', ['id', 'email', 'first_name', 'last_name', 'created_at']);
+
+        // All available column definitions
+        $columnMap = [
+            'id' => fn($s) => $s->id,
+            'hash' => fn($s) => $s->hash,
+            'email' => fn($s) => $s->email,
+            'first_name' => fn($s) => $s->first_name,
+            'last_name' => fn($s) => $s->last_name,
+            'tags' => fn($s) => $s->tags->pluck('name')->implode(', '),
+            'locations' => fn($s) => $s->locations->pluck('name')->implode(', '),
+            'skills' => fn($s) => $s->skills->pluck('name')->implode(', '),
+            'industries' => fn($s) => $s->industries->pluck('name')->implode(', '),
+            'levels' => fn($s) => $s->levels->pluck('name')->implode(', '),
+            'status' => fn($s) => $s->unsubscribed_at ? 'Unsubscribed' : 'Subscribed',
+            'created_at' => fn($s) => $s->created_at,
+            'updated_at' => fn($s) => $s->updated_at,
+        ];
+
         return (new FastExcel($subscribers))
-            ->download(sprintf('subscribers-%s.csv', date('Y-m-d-H-m-s')), static function ($subscriber) {
-                return [
-                    'id' => $subscriber->id,
-                    'hash' => $subscriber->hash,
-                    'email' => $subscriber->email,
-                    'first_name' => $subscriber->first_name,
-                    'last_name' => $subscriber->last_name,
-                    'created_at' => $subscriber->created_at,
-                ];
+            ->download(sprintf('subscribers-%s.csv', date('Y-m-d-H-m-s')), function ($subscriber) use ($columns, $columnMap) {
+                $row = [];
+                foreach ($columns as $col) {
+                    if (isset($columnMap[$col])) {
+                        $row[$col] = $columnMap[$col]($subscriber);
+                    }
+                }
+                return $row;
             });
     }
 }

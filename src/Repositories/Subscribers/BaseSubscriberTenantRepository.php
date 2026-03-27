@@ -10,7 +10,10 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Sendportal\Base\Models\Subscriber;
 use Sendportal\Base\Repositories\BaseTenantRepository;
+use Sendportal\Base\Repositories\IndustryTenantRepository;
+use Sendportal\Base\Repositories\LevelTenantRepository;
 use Sendportal\Base\Repositories\LocationTenantRepository;
+use Sendportal\Base\Repositories\SkillTenantRepository;
 use Sendportal\Base\Repositories\TagTenantRepository;
 
 abstract class BaseSubscriberTenantRepository extends BaseTenantRepository implements
@@ -25,10 +28,27 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
     /** @var LocationTenantRepository */
     protected $locationRepo;
 
-    public function __construct(TagTenantRepository $tagRepo, LocationTenantRepository $locationRepo)
-    {
+    /** @var SkillTenantRepository */
+    protected $skillRepo;
+
+    /** @var IndustryTenantRepository */
+    protected $industryRepo;
+
+    /** @var LevelTenantRepository */
+    protected $levelRepo;
+
+    public function __construct(
+        TagTenantRepository $tagRepo,
+        LocationTenantRepository $locationRepo,
+        SkillTenantRepository $skillRepo,
+        IndustryTenantRepository $industryRepo,
+        LevelTenantRepository $levelRepo
+    ) {
         $this->tagRepo = $tagRepo;
         $this->locationRepo = $locationRepo;
+        $this->skillRepo = $skillRepo;
+        $this->industryRepo = $industryRepo;
+        $this->levelRepo = $levelRepo;
     }
 
     /**
@@ -41,39 +61,57 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         /** @var Subscriber $instance */
         $instance = $this->getNewInstance();
 
-        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'locations']));
+        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'locations', 'skills', 'industries', 'levels']));
 
-        // Only sync tags if its actually present. This means that users must
-        // pass through an empty tags array if they want to delete all tags.
         if (isset($data['tags'])) {
             $this->syncTags($instance, Arr::get($data, 'tags', []));
         }
         if (isset($data['locations'])) {
             $this->syncLocations($instance, Arr::get($data, 'locations', []));
         }
+        if (isset($data['skills'])) {
+            $this->syncSkills($instance, Arr::get($data, 'skills', []));
+        }
+        if (isset($data['industries'])) {
+            $this->syncIndustries($instance, Arr::get($data, 'industries', []));
+        }
+        if (isset($data['levels'])) {
+            $this->syncLevels($instance, Arr::get($data, 'levels', []));
+        }
         return $subscriber;
     }
 
     /**
      * Sync Tags to a Subscriber.
-     *
-     * @param Subscriber $subscriber
-     * @param array $tags
-     *
-     * @return mixed
      */
     public function syncTags(Subscriber $subscriber, array $tags = [])
     {
-        $tagIds = $this->normalizeTagIdentifiers($subscriber->workspace_id, $tags);
-
+        $tagIds = $this->normalizeEntityIdentifiers($subscriber->workspace_id, $tags, $this->tagRepo);
         return $subscriber->tags()->sync($tagIds);
     }
 
     public function syncLocations(Subscriber $subscriber, array $locations = [])
     {
         $locationIds = $this->normalizeLocationIdentifiers($subscriber->workspace_id, $locations);
-
         return $subscriber->locations()->sync($locationIds);
+    }
+
+    public function syncSkills(Subscriber $subscriber, array $skills = [])
+    {
+        $skillIds = $this->normalizeEntityIdentifiers($subscriber->workspace_id, $skills, $this->skillRepo);
+        return $subscriber->skills()->sync($skillIds);
+    }
+
+    public function syncIndustries(Subscriber $subscriber, array $industries = [])
+    {
+        $industryIds = $this->normalizeEntityIdentifiers($subscriber->workspace_id, $industries, $this->industryRepo);
+        return $subscriber->industries()->sync($industryIds);
+    }
+
+    public function syncLevels(Subscriber $subscriber, array $levels = [])
+    {
+        $levelIds = $this->normalizeEntityIdentifiers($subscriber->workspace_id, $levels, $this->levelRepo);
+        return $subscriber->levels()->sync($levelIds);
     }
 
     /**
@@ -81,31 +119,32 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
      */
     public function update($workspaceId, $id, array $data)
     {
-
         $this->checkTenantData($data);
 
         $instance = $this->find($workspaceId, $id);
 
-        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'locations', 'id']));
+        $subscriber = $this->executeSave($workspaceId, $instance, Arr::except($data, ['tags', 'locations', 'skills', 'industries', 'levels', 'id']));
 
-        // Only sync tags if its actually present. This means that users must
-        // pass through an empty tags array if they want to delete all tags.
         if (isset($data['tags'])) {
             $this->syncTags($instance, Arr::get($data, 'tags', []));
         }
         if (isset($data['locations'])) {
             $this->syncLocations($instance, Arr::get($data, 'locations', []));
         }
+        if (isset($data['skills'])) {
+            $this->syncSkills($instance, Arr::get($data, 'skills', []));
+        }
+        if (isset($data['industries'])) {
+            $this->syncIndustries($instance, Arr::get($data, 'industries', []));
+        }
+        if (isset($data['levels'])) {
+            $this->syncLevels($instance, Arr::get($data, 'levels', []));
+        }
         return $subscriber;
     }
 
     /**
      * Return the count of active subscribers
-     *
-     * @param int $workspaceId
-     *
-     * @return mixed
-     * @throws Exception
      */
     public function countActive($workspaceId): int
     {
@@ -131,16 +170,15 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         $this->applyStatusFilter($instance, $filters);
         $this->applyTagFilter($instance, $filters);
         $this->applyLocationFilter($instance, $filters);
+        $this->applySkillFilter($instance, $filters);
+        $this->applyIndustryFilter($instance, $filters);
+        $this->applyLevelFilter($instance, $filters);
     }
 
-    /**
-     * Filter by name or email.
-     */
     protected function applyNameFilter(Builder $instance, array $filters): void
     {
         if ($name = Arr::get($filters, 'name')) {
             $filterString = '%' . $name . '%';
-
             $instance->where(static function (Builder $instance) use ($filterString) {
                 $instance->where('sendportal_subscribers.first_name', 'like', $filterString)
                     ->orWhere('sendportal_subscribers.last_name', 'like', $filterString)
@@ -149,9 +187,6 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         }
     }
 
-    /**
-     * Filter by subscription status.
-     */
     protected function applyStatusFilter(Builder $instance, array $filters): void
     {
         $status = Arr::get($filters, 'status');
@@ -167,9 +202,6 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         }
     }
 
-    /**
-     * Filter by tag.
-     */
     protected function applyTagFilter(Builder $instance, array $filters = []): void
     {
         if ($tagIds = Arr::get($filters, 'tags')) {
@@ -200,43 +232,69 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
         }
     }
 
+    protected function applySkillFilter(Builder $instance, array $filters = []): void
+    {
+        if ($skillIds = Arr::get($filters, 'skills')) {
+            $instance->whereHas('skills', function (Builder $query) use ($skillIds) {
+                $query->whereIn('sendportal_skills.id', $skillIds);
+            });
+        }
+    }
+
+    protected function applyIndustryFilter(Builder $instance, array $filters = []): void
+    {
+        if ($industryIds = Arr::get($filters, 'industries')) {
+            $instance->whereHas('industries', function (Builder $query) use ($industryIds) {
+                $query->whereIn('sendportal_industries.id', $industryIds);
+            });
+        }
+    }
+
+    protected function applyLevelFilter(Builder $instance, array $filters = []): void
+    {
+        if ($levelIds = Arr::get($filters, 'levels')) {
+            $instance->whereHas('levels', function (Builder $query) use ($levelIds) {
+                $query->whereIn('sendportal_levels.id', $levelIds);
+            });
+        }
+    }
+
     /**
-     * @param int $workspaceId
-     * @param array<int|string|array<string,mixed>> $tags
+     * Generic method to normalize entity identifiers (tags, skills, industries, levels).
+     * Accepts integer IDs, string names (will find-or-create), or arrays with id/name.
      *
+     * @param int $workspaceId
+     * @param array $items
+     * @param BaseTenantRepository $repo
      * @return array<int>
      */
-    protected function normalizeTagIdentifiers(int $workspaceId, array $tags): array
+    protected function normalizeEntityIdentifiers(int $workspaceId, array $items, BaseTenantRepository $repo): array
     {
-        return collect($tags)->map(function ($tag) use ($workspaceId) {
-            if (is_array($tag)) {
-                $possibleId = Arr::get($tag, 'id', Arr::get($tag, 'value'));
+        return collect($items)->map(function ($item) use ($workspaceId, $repo) {
+            if (is_array($item)) {
+                $possibleId = Arr::get($item, 'id', Arr::get($item, 'value'));
                 if ($possibleId !== null && $possibleId !== '') {
                     return (int) $possibleId;
                 }
-
-                $tag = Arr::get($tag, 'name', Arr::get($tag, 'label'));
+                $item = Arr::get($item, 'name', Arr::get($item, 'label'));
             }
 
-            if (is_numeric($tag)) {
-                return (int) $tag;
+            if (is_numeric($item)) {
+                return (int) $item;
             }
 
-            if (is_string($tag)) {
-                $tagName = trim($tag);
-
-                if ($tagName === '') {
+            if (is_string($item)) {
+                $name = trim($item);
+                if ($name === '') {
                     return null;
                 }
 
-                $existing = $this->tagRepo->findBy($workspaceId, 'name', $tagName);
-
+                $existing = $repo->findBy($workspaceId, 'name', $name);
                 if (!$existing) {
-                    $existing = $this->tagRepo->store($workspaceId, [
-                        'name' => $tagName,
+                    $existing = $repo->store($workspaceId, [
+                        'name' => $name,
                     ]);
                 }
-
                 return $existing->id;
             }
 
@@ -245,12 +303,7 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
     }
 
     /**
-     * Normalize location identifiers (ID, name string, or array with id/name) to array of location IDs.
-     * Creates location if it doesn't exist when provided as a string name.
-     *
-     * @param int $workspaceId
-     * @param array $locations
-     * @return array<int>
+     * Normalize location identifiers with special handling for global unique names.
      */
     protected function normalizeLocationIdentifiers(int $workspaceId, array $locations): array
     {
@@ -260,7 +313,6 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
                 if ($possibleId !== null && $possibleId !== '') {
                     return (int) $possibleId;
                 }
-
                 $location = Arr::get($location, 'name', Arr::get($location, 'label'));
             }
 
@@ -270,34 +322,28 @@ abstract class BaseSubscriberTenantRepository extends BaseTenantRepository imple
 
             if (is_string($location)) {
                 $locationName = trim($location);
-
                 if ($locationName === '') {
                     return null;
                 }
 
-                // Tìm kiếm theo workspace_id trước
                 $existing = $this->locationRepo->findBy($workspaceId, 'name', $locationName);
 
-                // Nếu không tìm thấy, tìm kiếm global (vì unique constraint là global)
                 if (!$existing) {
                     $existing = $this->locationRepo->getNewInstance()
                         ->where('name', $locationName)
                         ->first();
                 }
 
-                // Nếu vẫn không tìm thấy, tạo mới
                 if (!$existing) {
                     try {
                         $existing = $this->locationRepo->store($workspaceId, [
                             'name' => $locationName,
                         ]);
                     } catch (\Exception $e) {
-                        // Nếu duplicate (có thể do race condition), tìm lại
                         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
                             $existing = $this->locationRepo->getNewInstance()
                                 ->where('name', $locationName)
                                 ->first();
-                            
                             if (!$existing) {
                                 throw $e;
                             }
