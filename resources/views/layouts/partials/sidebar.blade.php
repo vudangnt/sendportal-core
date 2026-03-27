@@ -27,7 +27,40 @@
                 <i class="fa-fw fas fa-user mr-2"></i><span>{{ __('Subscribers') }}</span>
             </a>
         </li>
-        <li class="nav-item {{ request()->is('*messages*') ? 'active' : '' }}">
+
+        {{-- Tag Types Management --}}
+        <li class="nav-item sidebar-section-header mt-2">
+            <span class="nav-link text-muted small text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+                <i class="fa-fw fas fa-cogs mr-1"></i>{{ __('Manage Tags') }}
+            </span>
+        </li>
+        <li class="nav-item {{ request()->is('*tags*') ? 'active' : '' }}">
+            <a class="nav-link py-1" href="{{ route('sendportal.tags.index') }}">
+                <i class="fa-fw fas fa-tags mr-2"></i><span>{{ __('Tags') }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->is('*locations*') ? 'active' : '' }}">
+            <a class="nav-link py-1" href="{{ route('sendportal.locations.index') }}">
+                <i class="fa-fw fas fa-map-marker-alt mr-2"></i><span>{{ __('Locations') }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->is('*skills*') ? 'active' : '' }}">
+            <a class="nav-link py-1" href="{{ route('sendportal.skills.index') }}">
+                <i class="fa-fw fas fa-tools mr-2"></i><span>{{ __('Skills') }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->is('*industries*') ? 'active' : '' }}">
+            <a class="nav-link py-1" href="{{ route('sendportal.industries.index') }}">
+                <i class="fa-fw fas fa-industry mr-2"></i><span>{{ __('Industries') }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->is('*levels*') ? 'active' : '' }}">
+            <a class="nav-link py-1" href="{{ route('sendportal.levels.index') }}">
+                <i class="fa-fw fas fa-layer-group mr-2"></i><span>{{ __('Levels') }}</span>
+            </a>
+        </li>
+
+        <li class="nav-item mt-2 {{ request()->is('*messages*') ? 'active' : '' }}">
             <a class="nav-link" href="{{ route('sendportal.messages.index') }}">
                 <i class="fa-fw fas fa-paper-plane mr-2"></i><span>{{ __('Messages') }}</span>
             </a>
