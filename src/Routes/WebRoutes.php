@@ -133,6 +133,15 @@ class WebRoutes
                 // Tags.
                 $appRouter->resource('tags', 'Tags\TagsController')->except(['show']);
 
+                // Skills.
+                $appRouter->resource('skills', 'Skills\SkillsController')->except(['show']);
+
+                // Industries.
+                $appRouter->resource('industries', 'Industries\IndustriesController')->except(['show']);
+
+                // Levels.
+                $appRouter->resource('levels', 'Levels\LevelsController')->except(['show']);
+
                 // Templates.
                 $appRouter->resource('templates', 'TemplatesController');
 

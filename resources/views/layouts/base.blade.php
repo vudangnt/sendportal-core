@@ -16,7 +16,7 @@
     <link href="{{ asset('vendor/sendportal/css/fontawesome-all.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/sendportal/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset(mix('app.css', 'vendor/sendportal')) }}" rel="stylesheet">
-
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet">
     @stack('css')
 
 </head>
@@ -27,6 +27,7 @@
 <script src="{{ asset('vendor/sendportal/js/jquery-3.6.0.min.js') }}"></script>
 <script src="{{ asset('vendor/sendportal/js/popper.min.js') }}"></script>
 <script src="{{ asset('vendor/sendportal/js/bootstrap.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/toastr.min.js"></script>
 
 <script>
     $('.sidebar-toggle').click(function (e) {

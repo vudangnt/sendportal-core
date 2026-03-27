@@ -88,14 +88,22 @@
                         <td>
                             @if($message->isCampaign())
                                 <i class="fas fa-envelope color-gray-300"></i>
-                                <a href="{{ route('sendportal.campaigns.reports.index', $message->source_id) }}">
-                                    {{ $message->source->name }}
-                                </a>
+                                @if($message->source)
+                                    <a href="{{ route('sendportal.campaigns.reports.index', $message->source_id) }}">
+                                        {{ $message->source->name }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">{{ __('Deleted Campaign') }}</span>
+                                @endif
                             @elseif(\Sendportal\Base\Facades\Helper::isPro() && $message->isAutomation())
                                 <i class="fas fa-sync-alt color-gray-300"></i>
-                                <a href="{{ route('sendportal.automations.show', $message->source->automation_step->automation_id) }}">
-                                    {{ $message->source->automation_step->automation->name }}
-                                </a>
+                                @if($message->source && $message->source->automation_step && $message->source->automation_step->automation)
+                                    <a href="{{ route('sendportal.automations.show', $message->source->automation_step->automation_id) }}">
+                                        {{ $message->source->automation_step->automation->name }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">{{ __('Deleted Automation') }}</span>
+                                @endif
                             @endif
                         </td>
                         <td>

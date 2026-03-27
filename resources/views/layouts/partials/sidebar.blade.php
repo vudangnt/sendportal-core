@@ -6,7 +6,7 @@
             </a>
         </li>
         <li class="nav-item {{ request()->is('*campaigns*') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('sendportal.campaigns.index') }}">
+            <a class="nav-link" href="{{ route('sendportal.campaigns.sent') }}">
                 <i class="fa-fw fas fa-envelope mr-2"></i><span>{{ __('Campaigns') }}</span>
             </a>
         </li>
