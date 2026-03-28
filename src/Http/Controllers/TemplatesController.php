@@ -18,6 +18,7 @@ use Sendportal\Base\Services\Templates\TemplateService;
 use Sendportal\Base\Traits\NormalizeTags;
 use Throwable;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Http\JsonResponse as JsonResponseAlias;
 
 class TemplatesController extends Controller
 {
@@ -144,6 +145,52 @@ class TemplatesController extends Controller
         $data = $this->service->update(Sendportal::currentWorkspaceId(), $id, $data);
         return response()->json(['success' => true, 'data' => $data]);
 
+    }
+
+    /**
+     * Return saved templates as JSON for Market tab
+     */
+    public function market(Request $request): JsonResponse
+    {
+        $search = $request->get('search', '');
+        $workspaceId = Sendportal::currentWorkspaceId();
+
+        $query = Template::where('workspace_id', $workspaceId);
+
+        // Filter by status if the column has values
+        if (\Illuminate\Support\Facades\Schema::hasColumn('sendportal_templates', 'status')) {
+            $query->where(function ($q) {
+                $q->where('status', 'active')->orWhereNull('status');
+            });
+        }
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $templates = $query->orderBy('updated_at', 'desc')
+            ->select(['id', 'name', 'content', 'data_json', 'created_at', 'updated_at'])
+            ->paginate(12);
+
+        return response()->json($templates);
+    }
+
+    /**
+     * Return a single template's design JSON for import
+     */
+    public function marketDesign(int $id): JsonResponse
+    {
+        $template = $this->templates->find(Sendportal::currentWorkspaceId(), $id);
+
+        if (!$template || !$template->data_json) {
+            return response()->json(['error' => 'Template not found or has no design'], 404);
+        }
+
+        return response()->json([
+            'id' => $template->id,
+            'name' => $template->name,
+            'data_json' => $template->data_json,
+        ]);
     }
 
     /**

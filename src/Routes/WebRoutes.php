@@ -142,12 +142,12 @@ class WebRoutes
                 // Levels.
                 $appRouter->resource('levels', 'Levels\LevelsController')->except(['show']);
 
-                // Templates.
-                $appRouter->resource('templates', 'TemplatesController');
-
+                // Templates - named routes BEFORE resource to avoid {id} conflict.
                 $appRouter->name('templates.')->prefix('templates')->group(static function (
                     Router $templateRouter
                 ) {
+                    $templateRouter->get('api/market', 'TemplatesController@market')->name('market');
+                    $templateRouter->get('api/market/{id}', 'TemplatesController@marketDesign')->name('market.design');
 
                     $templateRouter->get('import/import', [TemplatesController::class, 'showImportForm'])->name('import');
                     $templateRouter->post('import/process', [TemplatesController::class, 'importJson'])->name('import.process');
@@ -156,6 +156,9 @@ class WebRoutes
 
                     $templateRouter->get('{id}/duplicate', 'TemplatesController@duplicate')->name('duplicate');
                 });
+
+                $appRouter->resource('templates', 'TemplatesController');
+
                 // Subscribers.
                 $appRouter->name('subscribers.')->prefix('subscribers')->namespace('Subscribers')->group(static function (
                     Router $subscriberRouter
@@ -166,8 +169,6 @@ class WebRoutes
                     $subscriberRouter->delete('destroy-all', 'SubscribersController@destroyAllByIds')->name('destroy-all');
                 });
                 $appRouter->resource('subscribers', 'Subscribers\SubscribersController');
-
-                $appRouter->resource('templates', 'TemplatesController')->except(['show']);
 
             });
         };
