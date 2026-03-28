@@ -110,6 +110,7 @@ class CampaignsController extends Controller
     {
         $workspaceId = Sendportal::currentWorkspaceId();
         $templates = [null => '- None -'] + $this->templates->pluck($workspaceId);
+        $templateModels = $this->templates->all($workspaceId, 'name');
         $emailServices = $this->emailServices->all(Sendportal::currentWorkspaceId(), 'id', ['type'])
             ->map(static function (EmailService $emailService) {
                 $emailService->formatted_name = "{$emailService->name} ({$emailService->type->name})";
@@ -118,7 +119,7 @@ class CampaignsController extends Controller
                 return $emailService;
             });
 
-        return view('sendportal::campaigns.create', compact('templates', 'emailServices'));
+        return view('sendportal::campaigns.create', compact('templates', 'templateModels', 'emailServices'));
     }
 
     /**
@@ -178,6 +179,7 @@ class CampaignsController extends Controller
                 return $emailService;
             });
         $templates = [null => '- None -'] + $this->templates->pluck($workspaceId);
+        $templateModels = $this->templates->all($workspaceId, 'name');
 
         $email = $campaign->from_email ?? old('from_email');
         $emailParts = explode('@', $email); // Tách email thành 2 phần
@@ -187,7 +189,7 @@ class CampaignsController extends Controller
         $campaign->from_email = $username;
         $campaign->from_domain = $domain;
 
-        return view('sendportal::campaigns.edit', compact('campaign', 'emailServices', 'templates'));
+        return view('sendportal::campaigns.edit', compact('campaign', 'emailServices', 'templates', 'templateModels'));
     }
 
     /**

@@ -63,6 +63,11 @@ class CampaignStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.required' => __('The campaign name field is required.'),
+            'subject.required' => __('The email subject field is required.'),
+            'from_name.required' => __('The from name field is required.'),
+            'from_email.required' => __('The from email field is required.'),
+            'from_email.email' => __('The from email must be a valid email address.'),
             'email_service_id.required' => __('Please select an email service.'),
         ];
     }
