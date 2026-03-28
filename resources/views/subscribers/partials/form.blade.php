@@ -3,6 +3,9 @@
 <x-sendportal.text-field name="last_name" :label="__('Last Name')" :value="$subscriber->last_name ?? null" />
 <x-sendportal.select-field name="tags[]" :label="__('Tags')" :options="$tags" :value="$selectedTags" multiple />
 <x-sendportal.select-field name="locations[]" :label="__('Locations')" :options="$locations" :value="$selectedLocations" multiple />
+<x-sendportal.select-field name="skills[]" :label="__('Skills')" :options="$skills" :value="$selectedSkills" multiple />
+<x-sendportal.select-field name="industries[]" :label="__('Industries')" :options="$industries" :value="$selectedIndustries" multiple />
+<x-sendportal.select-field name="levels[]" :label="__('Levels')" :options="$levels" :value="$selectedLevels" multiple />
 <x-sendportal.checkbox-field name="subscribed" :label="__('Subscribed')" :checked="empty($subscriber->unsubscribed_at)" />
 
 @push('css')
