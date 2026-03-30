@@ -33,8 +33,13 @@ class EmailServicesController extends Controller
         return view('sendportal::email_services.index', compact('emailServices'));
     }
 
-    public function create(): View
+    public function create()
     {
+        if (!config('sendportal-host.email_services.editable', true)) {
+            return redirect()->route('sendportal.email_services.index')
+                ->withErrors(__('You do not have permission to create email services.'));
+        }
+
         $emailServiceTypes = $this->emailServices->getEmailServiceTypes()->pluck('name', 'id');
 
         return view('sendportal::email_services.create', compact('emailServiceTypes'));
@@ -45,6 +50,11 @@ class EmailServicesController extends Controller
      */
     public function store(EmailServiceRequest $request): RedirectResponse
     {
+        if (!config('sendportal-host.email_services.editable', true)) {
+            return redirect()->route('sendportal.email_services.index')
+                ->withErrors(__('You do not have permission to create email services.'));
+        }
+
         $emailServiceType = $this->emailServices->findType($request->type_id);
 
         $settings = $request->get('settings', []);
@@ -63,6 +73,11 @@ class EmailServicesController extends Controller
      */
     public function edit(int $emailServiceId)
     {
+        if (!config('sendportal-host.email_services.editable', true)) {
+            return redirect()->route('sendportal.email_services.index')
+                ->withErrors(__('You do not have permission to edit email services.'));
+        }
+
         $emailServiceTypes = $this->emailServices->getEmailServiceTypes()->pluck('name', 'id');
         $emailService = $this->emailServices->find(Sendportal::currentWorkspaceId(), $emailServiceId);
         $emailServiceType = $this->emailServices->findType($emailService->type_id);
@@ -75,6 +90,11 @@ class EmailServicesController extends Controller
      */
     public function update(EmailServiceRequest $request, int $emailServiceId): RedirectResponse
     {
+        if (!config('sendportal-host.email_services.editable', true)) {
+            return redirect()->route('sendportal.email_services.index')
+                ->withErrors(__('You do not have permission to edit email services.'));
+        }
+
         $emailService = $this->emailServices->find(Sendportal::currentWorkspaceId(), $emailServiceId, ['type']);
 
         $settings = $request->get('settings');
@@ -91,6 +111,11 @@ class EmailServicesController extends Controller
      */
     public function delete(int $emailServiceId): RedirectResponse
     {
+        if (!config('sendportal-host.email_services.editable', true)) {
+            return redirect()->route('sendportal.email_services.index')
+                ->withErrors(__('You do not have permission to delete email services.'));
+        }
+
         $emailService = $this->emailServices->find(Sendportal::currentWorkspaceId(), $emailServiceId, ['campaigns']);
 
         if ($emailService->in_use) {

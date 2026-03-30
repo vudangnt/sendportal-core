@@ -10,22 +10,20 @@
 
 
 <div class="form-group row form-group-from_email">
-    <label for="id-field-from_email" class="control-label col-sm-3">From Email</label>
-    <div class="col-sm-3" style="padding-right: 3px;">
-        <input type="text" name="from_email_part" value="{{ $campaign->from_email ?? (old('from_email') ? explode('@', old('from_email'))[0] : '') }}"
-               id="id-field-from_email_part" class="form-control" placeholder="no-reply, info...">
-    </div>
-    <label for="id-field-from_domain" class="control-label col-sm-3 text-center"
-           style="margin-bottom: 0px; padding-left: 0px; display: flex; align-items: center;">
-        @ {{ $campaign->from_domain ?? '' }}</label>
-
-    <input type="hidden" name="from_email" id="full-from-email">
-
-    @error('from_email')
-        <div class="col-sm-9 offset-sm-3">
-            <span class="text-danger small">{{ $message }}</span>
+    <label for="id-field-from_email" class="control-label col-sm-3">{{ __('From Email') }}</label>
+    <div class="col-sm-9">
+        <div class="input-group">
+            <input type="text" name="from_email_part" value="{{ $campaign->from_email ?? (old('from_email') ? explode('@', old('from_email'))[0] : '') }}"
+                   id="id-field-from_email_part" class="form-control" placeholder="no-reply, info...">
+            <div class="input-group-append">
+                <span class="input-group-text" id="from-domain-addon" style="min-width: 160px;">@ {{ $campaign->from_domain ?? '' }}</span>
+            </div>
         </div>
-    @enderror
+        <input type="hidden" name="from_email" id="full-from-email">
+        @error('from_email')
+            <span class="text-danger small mt-1 d-block">{{ $message }}</span>
+        @enderror
+    </div>
 </div>
 
 
@@ -39,8 +37,12 @@
 
 <div class="form-group row">
     <div class="offset-sm-3 col-sm-9">
-        <a href="{{ route('sendportal.campaigns.index') }}" class="btn btn-light">{{ __('Cancel') }}</a>
-        <button type="submit" class="btn btn-primary">{{ __('Save and continue') }}</button>
+        <a href="{{ route('sendportal.campaigns.index') }}" class="btn btn-light">
+            <i class="fa fa-times mr-1"></i> {{ __('Cancel') }}
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fa fa-arrow-right mr-1"></i> {{ __('Save and continue') }}
+        </button>
     </div>
 </div>
 
@@ -53,7 +55,7 @@
             $('form').on('submit', function (e) {
                 // Get the values
                 const emailPart = $('#id-field-from_email_part').val(); // The user-input email part
-                const domainPart = $('label[for="id-field-from_domain"]').text().trim().replace('@', '').trim(); // The domain part
+                const domainPart = $('#from-domain-addon').text().trim().replace('@', '').trim(); // The domain part
 
                 // Combine into a full email address
                 const fullEmail = emailPart + '@' + domainPart;
@@ -88,10 +90,9 @@
                 const domain = selectedDomain.domain;
                 console.log(domain);
                 if (domain) {
-                    $('label[for="id-field-from_domain"]').text('@' + domain);
-
+                    $('#from-domain-addon').text('@ ' + domain);
                 } else {
-                    $('label[for="id-field-from_domain"]').text('@');
+                    $('#from-domain-addon').text('@ ');
                 }
             }
 
@@ -123,10 +124,9 @@
                 const domain = selectedDomain.domain;
                 console.log(domain);
                 if (domain) {
-                    $('label[for="id-field-from_domain"]').text('@' + domain);
-
+                    $('#from-domain-addon').text('@ ' + domain);
                 } else {
-                    $('label[for="id-field-from_domain"]').text('@');
+                    $('#from-domain-addon').text('@ ');
                 }
             }
         }
