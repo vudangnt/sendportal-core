@@ -6,6 +6,7 @@
 
 @section('content')
 
+    @if(config('sendportal-host.email_services.editable', true))
     @component('sendportal::layouts.partials.card')
         @slot('cardHeader', __('Edit Email Service'))
 
@@ -21,5 +22,16 @@
             </form>
         @endSlot
     @endcomponent
+    @else
+    @component('sendportal::layouts.partials.card')
+        @slot('cardHeader', __('Edit Email Service'))
+
+        @slot('cardBody')
+            <div class="alert alert-warning">
+                {{ __('You do not have permission to edit email services.') }}
+            </div>
+        @endSlot
+    @endcomponent
+    @endif
 
 @stop

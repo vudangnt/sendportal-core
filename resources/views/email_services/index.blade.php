@@ -8,6 +8,7 @@
 
 @section('content')
 
+    @if(config('sendportal-host.email_services.editable', true))
     @component('sendportal::layouts.partials.actions')
         @slot('right')
             <a class="btn btn-primary btn-md btn-flat" href="{{ route('sendportal.email_services.create') }}">
@@ -15,6 +16,7 @@
             </a>
         @endslot
     @endcomponent
+    @endif
 
     <div class="card">
         <div class="card-table">
@@ -35,6 +37,7 @@
                             <a href="{{ route('sendportal.email_services.test.create', $service->id) }}" class="btn btn-sm btn-light">
                                 {{ __('Test') }}
                             </a>
+                            @if(config('sendportal-host.email_services.editable', true))
                             <a class="btn btn-sm btn-light"
                                href="{{ route('sendportal.email_services.edit', $service->id) }}">{{ __('Edit') }}</a>
                             <form action="{{ route('sendportal.email_services.delete', $service->id) }}" method="POST"
@@ -43,6 +46,7 @@
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-light">{{ __('Delete') }}</button>
                             </form>
+                            @endif
                         </td>
                     </tr>
                 @empty
