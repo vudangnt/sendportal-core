@@ -79,7 +79,7 @@ class SubscribersImportController extends Controller
 
             $array = (new UsersImport)->toArray(Storage::disk('local')->path($path));
             
-            $chunks = array_chunk($array[0], 500); // Xử lý mỗi lần 1000 records
+            $chunks = array_chunk($array[0], 200); // Xử lý mỗi lần 200 records để tránh timeout
             $totalChunks = count($chunks);
 
             // Lưu thời gian bắt đầu

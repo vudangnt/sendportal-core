@@ -19,6 +19,21 @@ class ImportSubscribersJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * Số lần retry tối đa (1 = không retry khi timeout)
+     */
+    public $tries = 1;
+
+    /**
+     * Timeout tối đa cho job (giây) - 30 phút
+     */
+    public $timeout = 1800;
+
+    /**
+     * Không tính retry khi bị timeout
+     */
+    public $maxExceptions = 1;
+
     protected $subscribers;
     protected $workspaceId;
     protected $tags;

@@ -13,6 +13,9 @@ class TrackImportProgressJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 1;
+    public $timeout = 60;
+
     protected $workspaceId;
     protected $totalChunks;
     protected $completedChunks;
