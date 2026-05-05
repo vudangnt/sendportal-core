@@ -19,6 +19,8 @@ use Sendportal\Pro\Models\Automation;
  * @property string|null $name
  * @property int $type_id
  * @property array $settings
+ * @property array|null $sender_domains
+ * @property bool $is_default
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
@@ -46,13 +48,17 @@ class EmailService extends BaseModel
         'name',
         'type_id',
         'settings',
+        'sender_domains',
+        'is_default',
     ];
 
     /** @var array */
     protected $casts = [
         'id' => 'int',
         'workspace_id' => 'int',
-        'type_id' => 'int'
+        'type_id' => 'int',
+        'sender_domains' => 'array',
+        'is_default' => 'boolean',
     ];
 
     /**
