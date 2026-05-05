@@ -18,11 +18,6 @@ class CreateTransactionalSourcesTable extends Migration
             $table->timestamps();
 
             $table->index(['workspace_id', 'created_at']);
-
-            $table->foreign('workspace_id')
-                ->references('id')
-                ->on('workspaces')
-                ->onDelete('cascade');
         });
     }
 
