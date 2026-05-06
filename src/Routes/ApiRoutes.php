@@ -59,7 +59,9 @@ class ApiRoutes
                     // Transactional emails
                     $apiRouter->name('transactional.')->prefix('transactional')->group(
                         static function (Router $transactionalRouter) {
-                            $transactionalRouter->post('send', 'TransactionalController@send')->name('send');
+                            $transactionalRouter->post('send', 'TransactionalController@send')
+                                ->middleware('check-email-limit')
+                                ->name('send');
                             $transactionalRouter->get('/', 'TransactionalController@index')->name('index');
                             $transactionalRouter->get('{hash}', 'TransactionalController@show')->name('show');
                         }
