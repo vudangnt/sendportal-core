@@ -2,6 +2,7 @@
 
 namespace Sendportal\Base\Services\Messages;
 
+use Sendportal\Base\Events\MessageSentEvent;
 use Sendportal\Base\Models\Message;
 
 class MarkAsSent
@@ -13,7 +14,10 @@ class MarkAsSent
     {
         $message->message_id = $messageId;
         $message->sent_at = now();
+        $message->save();
 
-        return tap($message)->save();
+        event(new MessageSentEvent($message));
+
+        return $message;
     }
 }

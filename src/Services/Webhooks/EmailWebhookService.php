@@ -9,6 +9,12 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Sendportal\Base\Events\MessageBouncedEvent;
+use Sendportal\Base\Events\MessageClickedEvent;
+use Sendportal\Base\Events\MessageComplainedEvent;
+use Sendportal\Base\Events\MessageDeliveredEvent;
+use Sendportal\Base\Events\MessageFailedEvent;
+use Sendportal\Base\Events\MessageOpenedEvent;
 use Sendportal\Base\Facades\Helper;
 use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\MessageFailure;
@@ -20,9 +26,16 @@ class EmailWebhookService
 {
     public function handleDelivery(string $messageId, Carbon $timestamp): void
     {
-        DB::table('sendportal_messages')->where('message_id', $messageId)->whereNull('delivered_at')->update([
+        $updated = DB::table('sendportal_messages')->where('message_id', $messageId)->whereNull('delivered_at')->update([
             'delivered_at' => $timestamp
         ]);
+
+        if ($updated) {
+            $message = Message::where('message_id', $messageId)->first();
+            if ($message) {
+                event(new MessageDeliveredEvent($message));
+            }
+        }
     }
 
     /**
@@ -44,6 +57,8 @@ class EmailWebhookService
 
         ++$message->open_count;
         $message->save();
+
+        event(new MessageOpenedEvent($message));
 
         // @todo not sure that this give much value? We can just derive the count from the messages table.
         if ($message->isAutomation()) {
@@ -69,6 +84,11 @@ class EmailWebhookService
             return;
         }
 
+        // Truncate URL to avoid "Data too long" errors (URLs with fbclid/UTM can exceed 255 chars).
+        if ($url && strlen($url) > 2048) {
+            $url = substr($url, 0, 2048);
+        }
+
         if (!$message->clicked_at) {
             $message->clicked_at = $timestamp;
         }
@@ -82,6 +102,8 @@ class EmailWebhookService
 
         ++$message->click_count;
         $message->save();
+
+        event(new MessageClickedEvent($message, $url));
 
         // @todo not sure that this give much value? We can just derive the count/ from the messages table.
         if ($message->isAutomation()) {
@@ -118,6 +140,8 @@ class EmailWebhookService
         if (!$message->complained_at) {
             $message->unsubscribed_at = $timestamp;
             $message->save();
+
+            event(new MessageComplainedEvent($message));
         }
 
         $this->unsubscribe($messageId, UnsubscribeEventType::COMPLAINT);
@@ -135,6 +159,8 @@ class EmailWebhookService
         if (!$message->bounced_at) {
             $message->bounced_at = $timestamp;
             $message->save();
+
+            event(new MessageBouncedEvent($message));
         }
 
         $this->unsubscribe($messageId, UnsubscribeEventType::BOUNCE);
@@ -156,6 +182,8 @@ class EmailWebhookService
         ]);
 
         $message->failures()->save($failure);
+
+        event(new MessageFailedEvent($message, (string) $description));
     }
 
     /**
