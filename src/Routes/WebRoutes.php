@@ -112,6 +112,12 @@ class WebRoutes
                     $messageRouter->post('send-selected', 'MessagesController@sendSelected')->name('send-selected');
                 });
 
+                // Transactional Messages.
+                $appRouter->name('transactional.')->prefix('transactional')->group(static function (Router $transactionalRouter) {
+                    $transactionalRouter->get('/', 'TransactionalMessagesController@index')->name('index');
+                    $transactionalRouter->get('{id}', 'TransactionalMessagesController@show')->name('show');
+                });
+
                 // Email Services.
                 $appRouter->name('email_services.')->prefix('email-services')->namespace('EmailServices')->group(static function (
                     Router $servicesRouter
