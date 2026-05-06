@@ -13,7 +13,7 @@ use Sendportal\Base\Http\Requests\Api\SubscriberTagStoreRequest;
 use Sendportal\Base\Http\Requests\Api\SubscriberTagUpdateRequest;
 use Sendportal\Base\Http\Resources\Tag as TagResource;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
-use Sendportal\Base\Services\Subscribers\Tags\ApiSubscriberLocationService;
+use Sendportal\Base\Services\Subscribers\Locations\ApiSubscriberLocationService;
 
 class SubscriberTagsController extends Controller
 {

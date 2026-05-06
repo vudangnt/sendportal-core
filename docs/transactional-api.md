@@ -1,26 +1,52 @@
 # Transactional Email API
 
-API gửi email lẻ với tracking đầy đủ (open, click, sent, delivered, bounced, complained, failed). Mỗi request trả về một hash để client polling status hoặc nhận webhook callback push.
+API gửi email lẻ (transactional/notifications/recruitment) với tracking đầy đủ và webhook callback. Mỗi request trả về một `transactional_hash` để client polling status hoặc nhận push qua webhook.
+
+Base URL: `{APP_URL}/api/v1`
+
+---
 
 ## Authentication
 
-Tất cả endpoints đều scope theo workspace. Sử dụng Workspace API Token:
+Tất cả endpoints scope theo workspace, dùng Workspace API Token:
 
 ```
 Authorization: Bearer YOUR_WORKSPACE_API_TOKEN
+Content-Type: application/json
+Accept: application/json
 ```
 
-## Rate Limiting
+Token được tạo từ UI workspace settings. Mỗi token gắn với 1 workspace; request không có hoặc sai token → `401 Unauthorized`.
 
-Theo `SENDPORTAL_THROTTLE_MIDDLEWARE` env (mặc định `60,1` = 60 requests/phút).
+---
+
+## Rate Limiting & Quota
+
+| Layer | Cấu hình | Response khi vượt |
+|---|---|---|
+| Per-IP throttle | `SENDPORTAL_THROTTLE_MIDDLEWARE=60,1` (60 req/phút) | `429 Too Many Requests` |
+| Monthly email limit | `workspaces.monthly_email_limit` | `429` với body bên dưới |
+
+```json
+{
+  "error": "Monthly email limit reached",
+  "limit": 10000,
+  "used": 10000,
+  "reset_date": "2026-06-01"
+}
+```
+
+`check-email-limit` middleware chỉ áp dụng cho `POST /transactional/send`; endpoints `GET` không bị chặn.
+
+---
 
 ## Endpoints
 
-### POST `/api/v1/transactional/send`
+### `POST /api/v1/transactional/send`
 
-Gửi email transactional/marketing/recruitment.
+Queue 1 email cho 1 hoặc nhiều recipients. Mỗi recipient trong `to` tạo 1 Message record riêng nhưng share chung `transactional_hash`.
 
-**Request body:**
+#### Request body
 
 ```json
 {
@@ -31,8 +57,12 @@ Gửi email transactional/marketing/recruitment.
   "to": [
     { "email": "user@example.com", "name": "User Name" }
   ],
-  "cc": [],
-  "bcc": [],
+  "cc": [
+    { "email": "manager@example.com" }
+  ],
+  "bcc": [
+    { "email": "audit@example.com" }
+  ],
   "subject": "Interview Invitation",
   "content": {
     "type": "html",
@@ -50,7 +80,7 @@ Gửi email transactional/marketing/recruitment.
 }
 ```
 
-Hoặc với MIME mode:
+MIME mode (raw RFC 5322 message, bỏ qua `subject`/`html`/`text` rendering):
 
 ```json
 {
@@ -64,7 +94,26 @@ Hoặc với MIME mode:
 }
 ```
 
-**Response 201:**
+#### Field reference
+
+| Field | Type | Required | Constraint |
+|---|---|---|---|
+| `from.email` | string | yes | valid email |
+| `from.name` | string | no | max 255 |
+| `to` | array | yes | min 1 item |
+| `to[].email` | string | yes | valid email |
+| `to[].name` | string | no | max 255 |
+| `cc` / `bcc` | array | no | same shape as `to` |
+| `subject` | string | yes | max 998 chars (RFC 5322) |
+| `content.type` | enum | yes | `html` \| `mime` |
+| `content.html` | string | required if `type=html` | — |
+| `content.text` | string | no | plain-text alternative |
+| `content.mime` | string | required if `type=mime` | full MIME message |
+| `tracking.open` | bool | no | default true tùy provider |
+| `tracking.click` | bool | no | default true tùy provider |
+| `metadata` | object | no | echo lại trong webhook callback |
+
+#### Response `201 Created`
 
 ```json
 {
@@ -78,17 +127,23 @@ Hoặc với MIME mode:
 }
 ```
 
-**Lỗi:**
+#### Errors
 
-- `401`: Invalid/missing API token
-- `422`: Validation failed hoặc domain không có email service
-- `429`: Rate limited
+| Status | Khi nào | Body |
+|---|---|---|
+| `401` | thiếu/sai token | Laravel default |
+| `422` | validation fail | Laravel validation errors |
+| `422` | không tìm thấy EmailService cho domain | `{ "error": "No email service configured for sender domain", "from_email": "..." }` |
+| `429` | rate limit hoặc monthly cap | xem mục Rate Limiting |
+| `500` | DB transaction fail khi queue message | `{ "error": "Failed to queue transactional email", "message": "..." }` |
 
-### GET `/api/v1/transactional/{hash}`
+---
 
-Xem chi tiết tracking của 1 transactional send.
+### `GET /api/v1/transactional/{hash}`
 
-**Response 200:**
+Trả về tracking chi tiết của một transactional send.
+
+#### Response `200 OK`
 
 ```json
 {
@@ -113,47 +168,108 @@ Xem chi tiết tracking của 1 transactional send.
 }
 ```
 
-### GET `/api/v1/transactional`
+Tất cả trường `*_at` là ISO-8601 hoặc `null` nếu event chưa xảy ra.
 
-List paginated transactional sources cho workspace.
+#### Errors
 
-**Query:** `?per_page=25&page=1`
+| Status | Body |
+|---|---|
+| `404` | `{ "error": "Transactional source not found" }` |
+
+---
+
+### `GET /api/v1/transactional`
+
+List paginated transactional sources cho workspace hiện tại, sort `created_at desc`.
+
+#### Query params
+
+| Param | Default | Mô tả |
+|---|---|---|
+| `per_page` | 25 | items per page |
+| `page` | 1 | page index |
+
+#### Response `200 OK`
+
+Laravel resource collection (chuẩn pagination):
+
+```json
+{
+  "data": [
+    {
+      "transactional_hash": "9b1f6c2e-...",
+      "created_at": "2026-05-05T10:00:00+00:00",
+      "messages": [ /* same shape as show endpoint */ ]
+    }
+  ],
+  "links": {
+    "first": "...?page=1",
+    "last": "...?page=10",
+    "prev": null,
+    "next": "...?page=2"
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 10,
+    "per_page": 25,
+    "to": 25,
+    "total": 250
+  }
+}
+```
+
+---
 
 ## Email Service Routing (Sender Domain)
 
-Khi nhận request, hệ thống tự chọn EmailService theo domain của `from.email`:
+Khi nhận `POST /transactional/send`, `TransactionalEmailServiceResolver` chọn EmailService theo thứ tự:
 
-1. Tìm EmailService trong workspace có `sender_domains` array chứa domain
-2. Nếu không tìm thấy, fallback về EmailService có `is_default=true`
-3. Nếu không có cả hai, trả về 422 error
+1. EmailService trong workspace có `sender_domains` JSON chứa domain của `from.email`
+2. Fallback về EmailService có `is_default = true`
+3. Cả hai đều miss → `422` (xem error table phía trên)
 
-**Cấu hình domain mapping:**
+#### Cấu hình mapping
 
 ```php
-$emailService = EmailService::create([
-    'workspace_id' => $workspaceId,
-    'name' => 'Postmark Production',
-    'type_id' => 4, // Postmark
-    'settings' => ['server_token' => 'POSTMARK_TOKEN'],
-    'sender_domains' => ['yourdomain.com', 'subdomain.yourdomain.com'],
-    'is_default' => true,
+EmailService::create([
+    'workspace_id'    => $workspaceId,
+    'name'            => 'Postmark Production',
+    'type_id'         => 4, // Postmark
+    'settings'        => ['server_token' => env('POSTMARK_TOKEN')],
+    'sender_domains'  => ['yourdomain.com', 'mail.yourdomain.com'],
+    'is_default'      => true,
 ]);
 ```
+
+---
 
 ## Webhook Callback
 
-Khi có tracking event (sent/delivered/opened/clicked/bounced/complained/failed), hệ thống POST về URL đã config trong workspace.
+Mỗi tracking event của message có `source_type = TransactionalSource` đều dispatch một POST về workspace callback URL.
 
-### Configuration
-
-Set per-workspace:
+### Configuration (per workspace)
 
 ```php
 $workspace->update([
-    'transactional_callback_url' => 'https://yourapp.com/sendportal-webhook',
+    'transactional_callback_url'    => 'https://yourapp.com/sendportal-webhook',
     'transactional_callback_secret' => 'YOUR_RANDOM_32_CHAR_SECRET',
 ]);
 ```
+
+Nếu `transactional_callback_url` rỗng → callback được skip silently.
+
+### Events dispatched
+
+| Event | Khi nào | `data` field |
+|---|---|---|
+| `sent` | Provider đã accept (sau khi gọi API) | `{}` |
+| `delivered` | Recipient inbox accept | `{}` |
+| `opened` | Tracking pixel mở | `{ "open_count": <int> }` |
+| `clicked` | Tracking link click | `{ "click_count": <int>, "click_url": "..." }` |
+| `bounced` | Hard/soft bounce | `{}` |
+| `complained` | Spam complaint | `{}` |
+| `failed` | Provider/queue lỗi | `{ "failure_reason": "..." }` |
 
 ### Callback payload
 
@@ -167,80 +283,192 @@ $workspace->update([
   "data": {
     "open_count": 2
   },
-  "metadata": { "external_ref": "interview-123" }
+  "metadata": {
+    "external_ref": "interview-123",
+    "user_id": 456
+  }
 }
 ```
 
+`metadata` echo nguyên `metadata` từ original send request.
+
 ### Headers
 
-- `Content-Type: application/json`
-- `X-Sendportal-Event`: event name (sent/delivered/opened/clicked/bounced/complained/failed)
-- `X-Sendportal-Signature`: `sha256=<hex_hmac>` - HMAC-SHA256 của `{timestamp}.{body}` ký bằng secret
-- `X-Sendportal-Timestamp`: unix seconds (đã include trong HMAC để chống replay)
+| Header | Giá trị |
+|---|---|
+| `Content-Type` | `application/json` |
+| `X-Sendportal-Event` | tên event (sent/delivered/opened/clicked/bounced/complained/failed) |
+| `X-Sendportal-Timestamp` | unix seconds, đã include trong HMAC để chống replay |
+| `X-Sendportal-Signature` | `sha256=<hex_hmac>` của `{timestamp}.{body}` ký bằng `transactional_callback_secret` |
 
-### Verifying the signature
+### Verify signature
+
+PHP:
 
 ```php
 $timestamp = $request->header('X-Sendportal-Timestamp');
 $signature = $request->header('X-Sendportal-Signature');
-$body = $request->getContent();
-$secret = 'YOUR_SECRET';
+$body      = $request->getContent();
+$secret    = 'YOUR_SECRET';
 
 $expected = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $secret);
 
 if (!hash_equals($expected, $signature)) {
     abort(401, 'Invalid signature');
 }
+
+// Optional: reject timestamps > 5 phút lệch để chống replay
+if (abs(time() - (int) $timestamp) > 300) {
+    abort(401, 'Stale timestamp');
+}
 ```
 
+Node.js:
+
 ```javascript
-// Node.js
 const crypto = require('crypto');
 
 function verifyWebhook(timestamp, signature, body, secret) {
-  const expected = 'sha256=' + crypto
-    .createHmac('sha256', secret)
-    .update(`${timestamp}.${body}`)
-    .digest('hex');
+  const expected =
+    'sha256=' +
+    crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 ```
 
+Python:
+
+```python
+import hmac, hashlib
+
+def verify_webhook(timestamp: str, signature: str, body: str, secret: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(),
+        f"{timestamp}.{body}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
 ### Retry behavior
 
-- Timeout: 10 giây
-- Retry: tối đa 3 lần
-- Backoff: 10s, 60s, 300s
-- Sau khi fail hết, log to MessageFailure (không ảnh hưởng status của message)
+| Property | Giá trị |
+|---|---|
+| Timeout | 10s |
+| Max attempts | 3 |
+| Backoff | 10s → 60s → 300s |
+| On final failure | log MessageFailure, không thay đổi message status |
+
+Endpoint của bạn cần idempotent — Sendportal có thể retry với cùng `message_hash`.
+
+---
 
 ## Examples
 
-### cURL - Send
+### Send (cURL)
 
 ```bash
-curl -X POST http://localhost:8081/api/v1/transactional/send \
+curl -X POST {APP_URL}/api/v1/transactional/send \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "from": {"email": "noreply@yourdomain.com", "name": "Test"},
-    "to": [{"email": "user@example.com"}],
-    "subject": "Test Email",
+    "from": {"email": "noreply@yourdomain.com", "name": "Your Company"},
+    "to": [{"email": "user@example.com", "name": "User"}],
+    "subject": "Welcome",
     "content": {"type": "html", "html": "<p>Hello</p>"},
     "tracking": {"open": true, "click": true},
-    "metadata": {"test_id": "001"}
+    "metadata": {"signup_id": "abc-123"}
   }'
 ```
 
-### cURL - Show
+### Send (PHP / Guzzle)
+
+```php
+use GuzzleHttp\Client;
+
+$client = new Client(['base_uri' => env('SENDPORTAL_URL')]);
+
+$response = $client->post('/api/v1/transactional/send', [
+    'headers' => [
+        'Authorization' => 'Bearer ' . env('SENDPORTAL_TOKEN'),
+        'Accept'        => 'application/json',
+    ],
+    'json' => [
+        'from'    => ['email' => 'noreply@yourdomain.com'],
+        'to'      => [['email' => $user->email]],
+        'subject' => 'Welcome',
+        'content' => ['type' => 'html', 'html' => $html],
+        'metadata'=> ['user_id' => $user->id],
+    ],
+]);
+
+$hash = json_decode($response->getBody(), true)['transactional_hash'];
+```
+
+### Send (Node / fetch)
+
+```javascript
+const res = await fetch(`${SENDPORTAL_URL}/api/v1/transactional/send`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${TOKEN}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    from: { email: 'noreply@yourdomain.com' },
+    to: [{ email: 'user@example.com' }],
+    subject: 'Welcome',
+    content: { type: 'html', html: '<p>Hello</p>' },
+    metadata: { user_id: 42 },
+  }),
+});
+
+const { transactional_hash } = await res.json();
+```
+
+### Show (cURL)
 
 ```bash
-curl http://localhost:8081/api/v1/transactional/{hash} \
+curl {APP_URL}/api/v1/transactional/{hash} \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-### cURL - List
+### List (cURL)
 
 ```bash
-curl "http://localhost:8081/api/v1/transactional?per_page=10" \
+curl "{APP_URL}/api/v1/transactional?per_page=10&page=1" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+---
+
+## Internal Architecture (tham khảo)
+
+```
+POST /transactional/send
+  └─ TransactionalController::send
+       ├─ TransactionalEmailServiceResolver::resolve(workspaceId, fromEmail)
+       ├─ TransactionalSource::create(request_payload)
+       ├─ Message::create(...) per recipient
+       └─ SendTransactionalMessageJob::dispatch(messageId, emailServiceId)
+                └─ DispatchTransactionalMessage → RelayMessage → provider API
+
+Provider webhook
+  └─ EmailWebhookService
+       ├─ update Message tracking fields
+       └─ fire MessageSent/Delivered/Opened/Clicked/Bounced/Complained/Failed Event
+                └─ DispatchTransactionalCallbackListener
+                       └─ DispatchTransactionalCallbackJob
+                              └─ POST workspace.transactional_callback_url (HMAC signed)
+```
+
+Chi tiết source code:
+
+- Controller: `lib/sendportal-core/src/Http/Controllers/Api/TransactionalController.php`
+- Validation: `lib/sendportal-core/src/Http/Requests/Api/SendTransactionalEmailRequest.php`
+- Resolver: `lib/sendportal-core/src/Services/Transactional/TransactionalEmailServiceResolver.php`
+- HMAC: `lib/sendportal-core/src/Services/Transactional/HmacSigner.php`
+- Job: `lib/sendportal-core/src/Jobs/SendTransactionalMessageJob.php`
+- Callback: `lib/sendportal-core/src/Jobs/DispatchTransactionalCallbackJob.php`
+- Routes: `lib/sendportal-core/src/Routes/ApiRoutes.php`
