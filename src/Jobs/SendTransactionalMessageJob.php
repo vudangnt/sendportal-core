@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Sendportal\Base\Models\EmailService;
 use Sendportal\Base\Models\Message;
-use Sendportal\Base\Services\Messages\DispatchMessage;
+use Sendportal\Base\Services\Transactional\DispatchTransactionalMessage;
 
 class SendTransactionalMessageJob implements ShouldQueue
 {
@@ -28,7 +28,7 @@ class SendTransactionalMessageJob implements ShouldQueue
         $this->emailServiceId = $emailServiceId;
     }
 
-    public function handle(DispatchMessage $dispatch): void
+    public function handle(DispatchTransactionalMessage $dispatch): void
     {
         /** @var Message|null $message */
         $message = Message::find($this->messageId);
