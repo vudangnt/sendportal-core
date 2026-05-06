@@ -115,7 +115,9 @@ class WebRoutes
                 // Transactional Messages.
                 $appRouter->name('transactional.')->prefix('transactional')->group(static function (Router $transactionalRouter) {
                     $transactionalRouter->get('/', 'TransactionalMessagesController@index')->name('index');
-                    $transactionalRouter->get('{id}', 'TransactionalMessagesController@show')->name('show');
+                    $transactionalRouter->get('{id}', 'TransactionalMessagesController@show')
+                        ->where('id', '[0-9]+')
+                        ->name('show');
                 });
 
                 // Email Services.
