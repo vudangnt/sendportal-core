@@ -6,10 +6,13 @@ namespace Sendportal\Base\Http\Controllers\Api;
 
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Http\Requests\Api\SendTransactionalEmailRequest;
+use Sendportal\Base\Http\Resources\TransactionalSourceResource;
 use Sendportal\Base\Jobs\SendTransactionalMessageJob;
 use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\TransactionalSource;
@@ -87,5 +90,41 @@ class TransactionalController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * List transactional sources for the current workspace.
+     */
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $workspaceId = Sendportal::currentWorkspaceId();
+
+        $sources = TransactionalSource::where('workspace_id', $workspaceId)
+            ->with('messages')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->get('per_page', 25));
+
+        return TransactionalSourceResource::collection($sources);
+    }
+
+    /**
+     * Show a single transactional source by hash.
+     */
+    public function show(string $hash): JsonResponse
+    {
+        $workspaceId = Sendportal::currentWorkspaceId();
+
+        $source = TransactionalSource::where('workspace_id', $workspaceId)
+            ->where('hash', $hash)
+            ->with('messages')
+            ->first();
+
+        if (!$source) {
+            return response()->json([
+                'error' => 'Transactional source not found',
+            ], 404);
+        }
+
+        return response()->json(new TransactionalSourceResource($source));
     }
 }
