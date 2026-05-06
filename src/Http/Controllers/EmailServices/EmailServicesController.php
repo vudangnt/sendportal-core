@@ -59,10 +59,20 @@ class EmailServicesController extends Controller
 
         $settings = $request->get('settings', []);
 
-        $this->emailServices->store(Sendportal::currentWorkspaceId(), [
-            'name' => $request->name,
-            'type_id' => $emailServiceType->id,
-            'settings' => $settings,
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $isDefault = (bool) $request->input('is_default', false);
+
+        if ($isDefault) {
+            \Sendportal\Base\Models\EmailService::where('workspace_id', $workspaceId)
+                ->update(['is_default' => false]);
+        }
+
+        $this->emailServices->store($workspaceId, [
+            'name'           => $request->name,
+            'type_id'        => $emailServiceType->id,
+            'settings'       => $settings,
+            'sender_domains' => $this->parseSenderDomains($request->input('sender_domains')),
+            'is_default'     => $isDefault,
         ]);
 
         return redirect()->route('sendportal.email_services.index');
@@ -95,15 +105,45 @@ class EmailServicesController extends Controller
                 ->withErrors(__('You do not have permission to edit email services.'));
         }
 
-        $emailService = $this->emailServices->find(Sendportal::currentWorkspaceId(), $emailServiceId, ['type']);
+        $workspaceId = Sendportal::currentWorkspaceId();
+        $emailService = $this->emailServices->find($workspaceId, $emailServiceId, ['type']);
 
         $settings = $request->get('settings');
+        $isDefault = (bool) $request->input('is_default', false);
+
+        if ($isDefault) {
+            \Sendportal\Base\Models\EmailService::where('workspace_id', $workspaceId)
+                ->where('id', '!=', $emailServiceId)
+                ->update(['is_default' => false]);
+        }
 
         $emailService->name = $request->name;
         $emailService->settings = $settings;
+        $emailService->sender_domains = $this->parseSenderDomains($request->input('sender_domains'));
+        $emailService->is_default = $isDefault;
         $emailService->save();
 
         return redirect()->route('sendportal.email_services.index');
+    }
+
+    /**
+     * Convert a comma- or whitespace-separated input string into a deduped,
+     * lowercase array of sender domains.
+     */
+    private function parseSenderDomains(?string $raw): array
+    {
+        if (!$raw) {
+            return [];
+        }
+
+        $parts = preg_split('/[\s,]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return collect($parts)
+            ->map(fn ($d) => strtolower(trim((string) $d)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
