@@ -13,19 +13,19 @@ use Sendportal\Base\Http\Requests\Api\SubscriberLocationStoreRequest;
 use Sendportal\Base\Http\Requests\Api\SubscriberLocationUpdateRequest;
 use Sendportal\Base\Http\Resources\Location as LocationResource;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
-use Sendportal\Base\Services\Subscribers\Locations\ApiSubscriberLocationservice;
+use Sendportal\Base\Services\Subscribers\Locations\ApiSubscriberLocationService;
 
 class SubscriberLocationsController extends Controller
 {
     /** @var SubscriberTenantRepositoryInterface */
     private $subscribers;
 
-    /** @var ApiSubscriberlocationservice */
+    /** @var ApiSubscriberLocationService */
     private $apiService;
 
     public function __construct(
         SubscriberTenantRepositoryInterface $subscribers,
-        ApiSubscriberLocationservice $apiService
+        ApiSubscriberLocationService $apiService
     ) {
         $this->subscribers = $subscribers;
         $this->apiService = $apiService;
