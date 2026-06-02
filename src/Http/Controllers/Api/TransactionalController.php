@@ -16,6 +16,8 @@ use Sendportal\Base\Http\Resources\TransactionalSourceResource;
 use Sendportal\Base\Jobs\SendTransactionalMessageJob;
 use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\TransactionalSource;
+use Sendportal\Base\Services\Templates\TemplateRenderer;
+use Sendportal\Base\Services\Templates\TransactionalTemplateResolver;
 use Sendportal\Base\Services\Transactional\TransactionalEmailServiceResolver;
 
 class TransactionalController extends Controller
@@ -34,6 +36,37 @@ class TransactionalController extends Controller
     {
         $workspaceId = Sendportal::currentWorkspaceId();
         $validated = $request->validated();
+
+        // Resolve + render template if template_code provided
+        $resolvedSubject = null;
+        $resolvedContent = null;
+        $templateCode    = null;
+
+        if (!empty($validated['template_code'])) {
+            $template = app(TransactionalTemplateResolver::class)
+                ->resolveTemplate($workspaceId, $validated['template_code']);
+            $rendered = app(TemplateRenderer::class)
+                ->render($template, $validated['variables'] ?? []);
+
+            $resolvedSubject = $rendered['subject'];
+            $resolvedContent = $rendered['content'];
+            $templateCode    = $template->code;
+        }
+
+        $subject     = $validated['subject']           ?? $resolvedSubject;
+        $contentHtml = $validated['content']['html']   ?? $resolvedContent;
+
+        if ($subject === null || $contentHtml === null) {
+            return response()->json([
+                'error' => 'Missing subject or content (provide them or supply a template_code).',
+            ], 422);
+        }
+
+        $validated['subject'] = $subject;
+        $validated['content'] = array_merge($validated['content'] ?? [], [
+            'type' => $validated['content']['type'] ?? 'html',
+            'html' => $contentHtml,
+        ]);
 
         $fromEmail = $validated['from']['email'];
         $emailService = $this->resolver->resolve($workspaceId, $fromEmail);
@@ -62,7 +95,7 @@ class TransactionalController extends Controller
                     'source_type' => TransactionalSource::class,
                     'source_id' => $source->id,
                     'recipient_email' => $recipient['email'],
-                    'subject' => $validated['subject'],
+                    'subject' => $subject,
                     'from_name' => $validated['from']['name'] ?? null,
                     'from_email' => $fromEmail,
                     'queued_at' => now(),
@@ -80,7 +113,8 @@ class TransactionalController extends Controller
 
             return response()->json([
                 'transactional_hash' => $source->hash,
-                'messages' => $messages,
+                'template_code'      => $templateCode,
+                'messages'           => $messages,
             ], 201);
         } catch (Exception $e) {
             DB::rollBack();
