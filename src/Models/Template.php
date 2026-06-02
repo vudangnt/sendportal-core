@@ -6,16 +6,20 @@ namespace Sendportal\Base\Models;
 
 use Carbon\Carbon;
 use Database\Factories\TemplateFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
- * @property int $workspace_id
+ * @property int|null $workspace_id
  * @property string $name
+ * @property string|null $code
+ * @property string|null $subject
  * @property string|null $content
+ * @property string $kind
+ * @property bool $is_default
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
@@ -27,8 +31,12 @@ class Template extends BaseModel
 {
     use HasFactory;
 
-    // NOTE(david): we require this because of namespace issues when resolving factories from models
-    // not in the default `App\Models` namespace.
+    public const KIND_CAMPAIGN      = 'campaign';
+    public const KIND_TRANSACTIONAL = 'transactional';
+
+    /** @var array<int,string> */
+    public static array $kinds = [self::KIND_CAMPAIGN, self::KIND_TRANSACTIONAL];
+
     protected static function newFactory()
     {
         return TemplateFactory::new();
@@ -40,9 +48,11 @@ class Template extends BaseModel
     /** @var array */
     protected $guarded = [];
 
-    /**
-     * Campaigns using this template
-     */
+    /** @var array */
+    protected $casts = [
+        'is_default' => 'bool',
+    ];
+
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
@@ -51,5 +61,20 @@ class Template extends BaseModel
     public function isInUse(): bool
     {
         return $this->campaigns()->count() > 0;
+    }
+
+    public function scopeKind(Builder $q, string $kind): Builder
+    {
+        return $q->where('kind', $kind);
+    }
+
+    public function scopeCampaign(Builder $q): Builder
+    {
+        return $q->where('kind', self::KIND_CAMPAIGN);
+    }
+
+    public function scopeTransactional(Builder $q): Builder
+    {
+        return $q->where('kind', self::KIND_TRANSACTIONAL);
     }
 }
