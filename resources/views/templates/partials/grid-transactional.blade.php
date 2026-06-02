@@ -1,11 +1,51 @@
 {{-- Transactional templates grid (workspace-scoped) --}}
+<style>
+    .tx-code-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: #eef4ff;
+        border: 1px solid #c8d8f7;
+        border-radius: 100px;
+        font-size: 12px;
+        line-height: 1;
+        color: #1a4fc7;
+    }
+    .tx-code-pill .tx-code-label {
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #5b6b8a;
+        font-size: 10px;
+    }
+    .tx-code-pill code {
+        background: transparent;
+        color: #1a4fc7;
+        font-weight: 600;
+        padding: 0;
+        font-size: 13px;
+    }
+    .tx-code-banner {
+        background: linear-gradient(135deg, #f6f9ff 0%, #eef4ff 100%);
+        border-bottom: 1px solid #e5edfa;
+        padding: 10px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
+
 <div class="row">
     @forelse($transactionalTemplates as $template)
         <div class="col-lg-4 col-md-6 col-sm-12 mb-4 template-card" data-name="{{ $template->name }}">
             <div class="card h-100 shadow-sm template-item">
-                {{-- Header strip with code badge --}}
-                <div class="px-3 pt-2 d-flex justify-content-between align-items-center">
-                    <code class="text-info" style="font-size: 12px;">{{ $template->code }}</code>
+                {{-- Code banner (prominent identifier) --}}
+                <div class="tx-code-banner">
+                    <span class="tx-code-pill">
+                        <span class="tx-code-label">{{ __('Code') }}</span>
+                        <code>{{ $template->code ?? '—' }}</code>
+                    </span>
                     <span class="badge badge-info" style="font-size: 10px;">TRANSACTIONAL</span>
                 </div>
 
