@@ -208,10 +208,11 @@ class TransactionalTemplatesController extends Controller
             $workspaceId
         );
         return $request->validate([
-            'code'    => ['required', 'string', 'max:64', 'regex:/^[a-z0-9_-]+$/', $unique],
-            'name'    => 'required|string|max:255',
-            'subject' => 'nullable|string|max:998',
-            'content' => 'nullable|string',
+            'code'      => ['required', 'string', 'max:64', 'regex:/^[a-z0-9_-]+$/', $unique],
+            'name'      => 'required|string|max:255',
+            'subject'   => 'nullable|string|max:998',
+            'content'   => 'nullable|string',
+            'data_json' => 'nullable|string',
         ]);
     }
 }
