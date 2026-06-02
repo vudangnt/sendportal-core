@@ -167,6 +167,24 @@ class WebRoutes
 
                 $appRouter->resource('templates', 'TemplatesController');
 
+                // Transactional Templates (workspace-scoped).
+                $appRouter->name('templates.transactional.')
+                    ->prefix('templates/transactional')
+                    ->namespace('Transactional')
+                    ->group(static function (Router $r) {
+                        $r->get('/', 'TransactionalTemplatesController@index')->name('index');
+                        $r->get('defaults', 'TransactionalTemplatesController@browseDefaults')->name('defaults');
+                        $r->post('clone/{code}', 'TransactionalTemplatesController@clone')->name('clone');
+                        $r->get('create', 'TransactionalTemplatesController@create')->name('create');
+                        $r->post('/', 'TransactionalTemplatesController@store')->name('store');
+                        $r->get('{id}/edit', 'TransactionalTemplatesController@edit')->name('edit');
+                        $r->put('{id}', 'TransactionalTemplatesController@update')->name('update');
+                        $r->delete('{id}', 'TransactionalTemplatesController@destroy')->name('destroy');
+                        $r->post('{id}/test', 'TransactionalTemplatesController@test')
+                          ->middleware('throttle:10,1')
+                          ->name('test');
+                    });
+
                 // Subscribers.
                 $appRouter->name('subscribers.')->prefix('subscribers')->namespace('Subscribers')->group(static function (
                     Router $subscriberRouter
