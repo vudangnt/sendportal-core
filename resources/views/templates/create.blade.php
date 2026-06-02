@@ -273,25 +273,45 @@
             editor.loadDesign(exampleTemplates.blank);
         @endif
 
-        // Image upload callback
+        // Image upload callback — Unlayer fires this when the user picks/drops
+        // an image. If we don't return a URL, Unlayer's fallback tries to
+        // inline the image as a data URL which blows up for large files
+        // ("Base64 string is too long for URL"). Defensive guards + clear
+        // errors so failures surface in console instead of cascading.
         editor.registerCallback('image', function(file, done) {
+            var picked = file && file.attachments && file.attachments[0];
+
+            if (!picked || !(picked instanceof Blob)) {
+                console.warn('[Unlayer] image callback received no file', file);
+                done({ progress: 100, url: '' });
+                return;
+            }
+
             var data = new FormData();
-            data.append('file', file.attachments[0]);
+            data.append('file', picked);
             data.append('_token', "{{ csrf_token() }}");
 
             fetch('/uploads', {
                 method: 'POST',
                 headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
                 body: data
             }).then(function(response) {
-                if (response.status >= 200 && response.status < 300) return response;
-                var error = new Error(response.statusText);
-                error.response = response;
-                throw error;
-            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error('[Unlayer upload] HTTP ' + response.status + ' ' + response.statusText);
+                }
                 return response.json();
-            }).then(function(data) {
-                done({ progress: 100, url: data.filelink });
+            }).then(function(payload) {
+                if (!payload || !payload.filelink) {
+                    throw new Error('[Unlayer upload] response missing filelink: ' + JSON.stringify(payload));
+                }
+                done({ progress: 100, url: payload.filelink });
+            }).catch(function(err) {
+                console.error(err);
+                if (window.toastr) toastr.error('Image upload failed — see console for details.');
+                // Signal completion to Unlayer with empty url so it doesn't
+                // recurse into the base64 fallback.
+                done({ progress: 100, url: '' });
             });
         });
 
@@ -369,11 +389,30 @@
             $('.market-card').css({ transform: '', boxShadow: '' });
         });
 
-        // Avoid Chrome's "Blocked aria-hidden on focused descendant" warning.
+        // a11y workaround: when Bootstrap closes a modal while it (or a child)
+        // still has focus, Chrome warns "Blocked aria-hidden on element with
+        // focused descendant". Move focus out BEFORE BS sets aria-hidden,
+        // and use the `inert` attribute (which actually blocks focus) instead
+        // of aria-hidden where supported.
         $(document).on('hide.bs.modal', '.modal', function () {
-            if (this.contains(document.activeElement)) {
-                document.activeElement.blur();
+            var modal = this;
+            if (modal === document.activeElement || modal.contains(document.activeElement)) {
+                // Park focus on body so BS's pending aria-hidden never traps a focused descendant.
+                if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+                if (document.body && document.body.focus) {
+                    // Bootstrap's modal has tabindex=-1 — body usually doesn't, so don't try to focus it.
+                    // Just blur is enough.
+                }
             }
+        });
+        $(document).on('hidden.bs.modal', '.modal', function () {
+            // BS has just set aria-hidden="true". Use inert (modern, no warning)
+            // and drop aria-hidden — better a11y posture.
+            this.removeAttribute('aria-hidden');
+            this.setAttribute('inert', '');
+        });
+        $(document).on('show.bs.modal', '.modal', function () {
+            this.removeAttribute('inert');
         });
 
         // Auto-focus the search input on the active tab when modal shows

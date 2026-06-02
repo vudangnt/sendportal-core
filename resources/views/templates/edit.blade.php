@@ -179,25 +179,32 @@
 
         editor.loadDesign({!! $template->data_json ?? '{}' !!});
 
-        // Image upload callback
+        // Image upload callback — defensive (see create.blade.php for rationale).
         editor.registerCallback('image', function(file, done) {
+            var picked = file && file.attachments && file.attachments[0];
+            if (!picked || !(picked instanceof Blob)) {
+                console.warn('[Unlayer] image callback received no file', file);
+                done({ progress: 100, url: '' });
+                return;
+            }
             var data = new FormData();
-            data.append('file', file.attachments[0]);
+            data.append('file', picked);
             data.append('_token', "{{ csrf_token() }}");
-
             fetch('/uploads', {
                 method: 'POST',
                 headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
                 body: data
             }).then(function(response) {
-                if (response.status >= 200 && response.status < 300) return response;
-                var error = new Error(response.statusText);
-                error.response = response;
-                throw error;
-            }).then(function(response) {
+                if (!response.ok) throw new Error('[Unlayer upload] HTTP ' + response.status + ' ' + response.statusText);
                 return response.json();
-            }).then(function(data) {
-                done({ progress: 100, url: data.filelink });
+            }).then(function(payload) {
+                if (!payload || !payload.filelink) throw new Error('[Unlayer upload] response missing filelink');
+                done({ progress: 100, url: payload.filelink });
+            }).catch(function(err) {
+                console.error(err);
+                if (window.toastr) toastr.error('Image upload failed — see console for details.');
+                done({ progress: 100, url: '' });
             });
         });
 
@@ -405,11 +412,18 @@
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        // Avoid Chrome's "Blocked aria-hidden on focused descendant" warning.
+        // a11y workaround: avoid Chrome's "Blocked aria-hidden on focused descendant" warning.
         $(document).on('hide.bs.modal', '.modal', function () {
-            if (this.contains(document.activeElement)) {
-                document.activeElement.blur();
+            if (document.activeElement && (this === document.activeElement || this.contains(document.activeElement))) {
+                if (document.activeElement.blur) document.activeElement.blur();
             }
+        });
+        $(document).on('hidden.bs.modal', '.modal', function () {
+            this.removeAttribute('aria-hidden');
+            this.setAttribute('inert', '');
+        });
+        $(document).on('show.bs.modal', '.modal', function () {
+            this.removeAttribute('inert');
         });
 
         // Auto-focus search on tab when modal opens
