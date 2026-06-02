@@ -41,10 +41,19 @@ class TemplatesController extends Controller
      */
     public function index(): View
     {
-        $templates = $this->templates->paginate(Sendportal::currentWorkspaceId(), 'name', [], [],
+        $workspaceId = Sendportal::currentWorkspaceId();
+
+        $templates = $this->templates->paginate($workspaceId, 'name', [], [],
             ['status' => 'active']);
 
-        return view('sendportal::templates.index', compact('templates'));
+        // Transactional templates rendered in a sibling tab so the user can
+        // see both kinds at a glance from one entry point.
+        $transactionalTemplates = Template::transactional()
+            ->where('workspace_id', $workspaceId)
+            ->orderBy('code')
+            ->paginate(12, ['*'], 'tx_page');
+
+        return view('sendportal::templates.index', compact('templates', 'transactionalTemplates'));
     }
 
     public function exportJson($id)
