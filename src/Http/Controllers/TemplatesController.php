@@ -155,7 +155,10 @@ class TemplatesController extends Controller
         $search = $request->get('search', '');
         $workspaceId = Sendportal::currentWorkspaceId();
 
-        $query = Template::where('workspace_id', $workspaceId);
+        // Market only surfaces campaign-style templates so the listing
+        // matches what marketDesign (via TemplateTenantRepository) can fetch.
+        $query = Template::where('workspace_id', $workspaceId)
+            ->where('kind', Template::KIND_CAMPAIGN);
 
         // Filter by status if the column has values
         if (\Illuminate\Support\Facades\Schema::hasColumn('sendportal_templates', 'status')) {

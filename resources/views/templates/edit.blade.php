@@ -405,6 +405,13 @@
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        // Avoid Chrome's "Blocked aria-hidden on focused descendant" warning.
+        $(document).on('hide.bs.modal', '.modal', function () {
+            if (this.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+        });
+
         // Auto-focus search on tab when modal opens
         $('#templateGalleryModal').on('shown.bs.modal', function() {
             var activeTab = $('#templateGalleryTabs .nav-link.active').attr('id');

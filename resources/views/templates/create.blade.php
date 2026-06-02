@@ -369,6 +369,13 @@
             $('.market-card').css({ transform: '', boxShadow: '' });
         });
 
+        // Avoid Chrome's "Blocked aria-hidden on focused descendant" warning.
+        $(document).on('hide.bs.modal', '.modal', function () {
+            if (this.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+        });
+
         // Auto-focus the search input on the active tab when modal shows
         $('#templateGalleryModal').on('shown.bs.modal', function () {
             var activeTab = $('#templateGalleryTabs .nav-link.active').attr('id');
