@@ -121,8 +121,7 @@ class TransactionalTemplatesController extends Controller
             'kind'         => Template::KIND_TRANSACTIONAL,
             'is_default'   => false,
         ]));
-        return redirect()
-            ->route('sendportal.templates.transactional.index')
+        return redirect(url('/templates#transactional'))
             ->with('success', 'Template created');
     }
 
@@ -131,8 +130,7 @@ class TransactionalTemplatesController extends Controller
         $workspaceId = Sendportal::currentWorkspaceId();
         $template = Template::transactional()->where('workspace_id', $workspaceId)->findOrFail($id);
         $template->update($this->validatePayload($request, $workspaceId, $id));
-        return redirect()
-            ->route('sendportal.templates.transactional.index')
+        return redirect(url('/templates#transactional'))
             ->with('success', 'Template updated');
     }
 
@@ -141,8 +139,7 @@ class TransactionalTemplatesController extends Controller
         $workspaceId = Sendportal::currentWorkspaceId();
         $template = Template::transactional()->where('workspace_id', $workspaceId)->findOrFail($id);
         $template->delete();
-        return redirect()
-            ->route('sendportal.templates.transactional.index')
+        return redirect(url('/templates#transactional'))
             ->with('success', 'Template deleted');
     }
 

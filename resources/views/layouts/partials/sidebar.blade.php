@@ -23,7 +23,7 @@
             </a>
         </li>
         <li class="nav-item {{ request()->is('templates/transactional*') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('sendportal.templates.transactional.index') }}">
+            <a class="nav-link" href="{{ url('/templates#transactional') }}">
                 <i class="fa-fw fas fa-paper-plane mr-2"></i><span>{{ __('Transactional Templates') }}</span>
             </a>
         </li>

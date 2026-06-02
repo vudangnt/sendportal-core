@@ -5,10 +5,15 @@
 <div class="container-fluid">
     <div class="row mb-3 align-items-center">
         <div class="col">
-            <a href="{{ route('sendportal.templates.transactional.index') }}" class="btn btn-light btn-sm mb-2">
-                <i class="fas fa-arrow-left"></i> Back
+            <a href="{{ url('/templates#transactional') }}" class="btn btn-light btn-sm mb-2">
+                <i class="fas fa-arrow-left"></i> {{ __('Back to Templates') }}
             </a>
-            <h3 class="mb-0">{{ $template ? 'Edit' : 'New' }} Transactional Template</h3>
+            <h3 class="mb-0">
+                {{ $template ? __('Edit') : __('New') }} {{ __('Transactional Template') }}
+                @if($template && $template->code)
+                    <code class="ml-2 px-2 py-1 bg-light text-info" style="font-size: 16px; border-radius: 4px;">{{ $template->code }}</code>
+                @endif
+            </h3>
         </div>
         <div class="col-auto">
             @if($template)

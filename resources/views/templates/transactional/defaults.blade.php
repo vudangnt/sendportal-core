@@ -4,8 +4,8 @@
 
 @section('content')
 <div class="container-fluid">
-    <a href="{{ route('sendportal.templates.transactional.index') }}" class="btn btn-light btn-sm mb-2">
-        <i class="fas fa-arrow-left"></i> Back
+    <a href="{{ url('/templates#transactional') }}" class="btn btn-light btn-sm mb-2">
+        <i class="fas fa-arrow-left"></i> {{ __('Back to Templates') }}
     </a>
     <h3>Defaults available to clone</h3>
     <div class="card">
