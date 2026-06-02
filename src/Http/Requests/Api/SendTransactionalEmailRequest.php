@@ -15,6 +15,8 @@ class SendTransactionalEmailRequest extends FormRequest
 
     public function rules(): array
     {
+        $usingTemplate = filled($this->input('template_code'));
+
         return [
             'from' => 'required|array',
             'from.email' => 'required|email',
@@ -32,13 +34,16 @@ class SendTransactionalEmailRequest extends FormRequest
             'bcc.*.email' => 'required|email',
             'bcc.*.name' => 'nullable|string|max:255',
 
-            'subject' => 'required|string|max:998',
+            'subject' => ($usingTemplate ? 'nullable' : 'required') . '|string|max:998',
 
-            'content' => 'required|array',
-            'content.type' => 'required|in:html,mime',
-            'content.html' => 'required_if:content.type,html|string',
+            'content' => $usingTemplate ? 'nullable|array' : 'required|array',
+            'content.type' => ($usingTemplate ? 'nullable' : 'required') . '|in:html,mime',
+            'content.html' => 'nullable|string',
             'content.text' => 'nullable|string',
-            'content.mime' => 'required_if:content.type,mime|string',
+            'content.mime' => 'nullable|string',
+
+            'template_code' => 'nullable|string|max:64|regex:/^[a-z0-9_-]+$/',
+            'variables'     => 'nullable|array',
 
             'tracking' => 'nullable|array',
             'tracking.open' => 'nullable|boolean',
