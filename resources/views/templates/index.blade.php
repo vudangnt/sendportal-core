@@ -103,8 +103,14 @@
                 {{ __('(e.g.,') }} <code>shortlist</code>, <code>offered</code>{{ __(', etc.). Variables like') }}
                 @{{ candidate_name }}
                 {{ __('are rendered at send time.') }}
-                <a href="{{ route('sendportal.templates.transactional.index') }}" class="ml-2">
-                    <i class="fas fa-external-link-alt mr-1"></i>{{ __('Open full Transactional page') }}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <a href="{{ route('sendportal.templates.transactional.defaults') }}" class="btn btn-light btn-sm">
+                    <i class="fas fa-list mr-1"></i> {{ __('Browse defaults') }}
+                </a>
+                <a href="{{ route('sendportal.templates.transactional.create') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus mr-1"></i> {{ __('New Transactional Template') }}
                 </a>
             </div>
 
