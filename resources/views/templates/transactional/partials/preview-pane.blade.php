@@ -7,7 +7,7 @@
             <input type="text" name="subject" id="tpl-subject"
                    class="form-control"
                    value="{{ old('subject', $template->subject ?? '') }}"
-                   placeholder="Subject — supports {{ '{{ var }}' }}">
+                   placeholder="Subject — supports @{{ var }}">
         </div>
     </div>
 </div>
@@ -17,7 +17,7 @@
         <label>Content (HTML)</label>
         <textarea name="content" id="tpl-content" class="form-control"
                   rows="22" style="font-family: monospace; font-size: 13px;"
-                  placeholder="<p>Hi {{ '{{ candidate_name }}' }},</p>">{{ old('content', $template->content ?? '') }}</textarea>
+                  placeholder="<p>Hi @{{ candidate_name }},</p>">{{ old('content', $template->content ?? '') }}</textarea>
     </div>
     <div class="col-md-6">
         <label>Live preview</label>
