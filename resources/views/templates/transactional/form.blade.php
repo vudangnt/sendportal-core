@@ -102,15 +102,15 @@
         },
         appearance: { theme: 'light' },
         // Pre-populate merge tags for common job-application variables.
-        // Users can still type any {{ var }} placeholder in subject/content.
+        // Note: @{{ }} escapes Blade — Unlayer sees literal {{var}}.
         mergeTags: {
-            candidate_name: { name: 'Candidate Name', value: '{{candidate_name}}' },
-            job_title:      { name: 'Job Title',      value: '{{job_title}}' },
-            company:        { name: 'Company',        value: '{{company}}' },
-            interview_link: { name: 'Interview Link', value: '{{interview_link}}' },
-            interview_date: { name: 'Interview Date', value: '{{interview_date}}' },
-            offer_url:      { name: 'Offer URL',      value: '{{offer_url}}' },
-            recruiter_name: { name: 'Recruiter Name', value: '{{recruiter_name}}' }
+            candidate_name: { name: 'Candidate Name', value: '@{{candidate_name}}' },
+            job_title:      { name: 'Job Title',      value: '@{{job_title}}' },
+            company:        { name: 'Company',        value: '@{{company}}' },
+            interview_link: { name: 'Interview Link', value: '@{{interview_link}}' },
+            interview_date: { name: 'Interview Date', value: '@{{interview_date}}' },
+            offer_url:      { name: 'Offer URL',      value: '@{{offer_url}}' },
+            recruiter_name: { name: 'Recruiter Name', value: '@{{recruiter_name}}' }
         }
     });
 
