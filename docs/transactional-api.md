@@ -94,6 +94,51 @@ MIME mode (raw RFC 5322 message, bỏ qua `subject`/`html`/`text` rendering):
 }
 ```
 
+#### Template mode (`template_code`)
+
+Thay vì gửi `subject` + `content.html` trực tiếp, client có thể tham chiếu một **transactional template** đã lưu bằng `template_code`, kèm `variables` để render các placeholder `{{ var }}`.
+
+```json
+{
+  "from": { "email": "hr@yourdomain.com" },
+  "to":   [{ "email": "candidate@example.com" }],
+  "template_code": "shortlist",
+  "variables": {
+    "candidate_name": "Anh",
+    "job_title": "PHP Developer",
+    "company": "Digisource"
+  }
+}
+```
+
+Khi có `template_code`:
+
+- `subject` và `content` trở thành **optional** (server lấy từ template).
+- Server render placeholder `{{ var }}` trên **cả** subject và content. Cú pháp Mustache: `{{ ten_bien }}` (cho phép khoảng trắng `{{ ten_bien }}`). Tên biến: `[a-zA-Z_][a-zA-Z0-9_]*`.
+- Biến **thiếu hoặc null** → render thành chuỗi rỗng (không leak `{{ var }}` ra recipient).
+- Không HTML-escape: giá trị biến được chèn nguyên văn. Client tự đảm bảo nội dung an toàn.
+
+**Resolver — thứ tự ưu tiên theo `template_code`:**
+
+1. Template của workspace hiện tại (`workspace_id = current`, `code = X`, `kind = transactional`) → workspace override.
+2. Fallback default global (`workspace_id = NULL`, `is_default = true`, `code = X`).
+3. Không tìm thấy → `422 { "message": "Template not found for code: X" }`.
+
+**Override per-field:** Nếu client **vẫn** gửi `subject` hoặc `content.html` cùng với `template_code`, giá trị client gửi **ghi đè** field tương ứng của template (sau khi render). Dùng để override một phần (vd. chỉ đổi subject, giữ body của template).
+
+**Default codes** (seed sẵn cho mọi workspace — job application status):
+
+| Code | Mục đích |
+|---|---|
+| `applied` | Đã nhận hồ sơ ứng tuyển |
+| `shortlist` | Vào shortlist |
+| `interviewed` | Xác nhận phỏng vấn |
+| `offered` | Gửi offer |
+| `onboard_probation` | Onboarding & thử việc |
+| `fail` | Kết quả không trúng tuyển |
+
+Default templates dùng các biến: `candidate_name`, `job_title`, `company`. Workspace có thể tạo template cùng `code` để override default, hoặc tạo code riêng.
+
 #### Field reference
 
 | Field | Type | Required | Constraint |
@@ -104,20 +149,25 @@ MIME mode (raw RFC 5322 message, bỏ qua `subject`/`html`/`text` rendering):
 | `to[].email` | string | yes | valid email |
 | `to[].name` | string | no | max 255 |
 | `cc` / `bcc` | array | no | same shape as `to` |
-| `subject` | string | yes | max 998 chars (RFC 5322) |
-| `content.type` | enum | yes | `html` \| `mime` |
-| `content.html` | string | required if `type=html` | — |
+| `subject` | string | yes¹ | max 998 chars (RFC 5322) |
+| `content.type` | enum | yes¹ | `html` \| `mime` |
+| `content.html` | string | required if `type=html`¹ | — |
 | `content.text` | string | no | plain-text alternative |
 | `content.mime` | string | required if `type=mime` | full MIME message |
+| `template_code` | string | no | `^[a-z0-9_-]+$`, max 64. Khi có → render template thay cho `subject`/`content` |
+| `variables` | object | no | key-value chèn vào placeholder `{{ key }}` của template |
 | `tracking.open` | bool | no | default true tùy provider |
 | `tracking.click` | bool | no | default true tùy provider |
 | `metadata` | object | no | echo lại trong webhook callback |
+
+> ¹ `subject` + `content` chỉ **bắt buộc khi KHÔNG có `template_code`**. Có `template_code` thì chúng optional (lấy từ template, nhưng vẫn override được nếu client gửi kèm).
 
 #### Response `201 Created`
 
 ```json
 {
   "transactional_hash": "9b1f6c2e-4f5d-4f3e-9d8a-1234567890ab",
+  "template_code": "shortlist",
   "messages": [
     {
       "message_hash": "a1b2c3d4-...",
@@ -127,6 +177,8 @@ MIME mode (raw RFC 5322 message, bỏ qua `subject`/`html`/`text` rendering):
 }
 ```
 
+`template_code` echo lại code đã resolve (hoặc `null` nếu request không dùng template).
+
 #### Errors
 
 | Status | Khi nào | Body |
@@ -134,6 +186,8 @@ MIME mode (raw RFC 5322 message, bỏ qua `subject`/`html`/`text` rendering):
 | `401` | thiếu/sai token | Laravel default |
 | `422` | validation fail | Laravel validation errors |
 | `422` | không tìm thấy EmailService cho domain | `{ "error": "No email service configured for sender domain", "from_email": "..." }` |
+| `422` | `template_code` không tồn tại (cả workspace lẫn default) | `{ "message": "Template not found for code: <code>" }` |
+| `422` | thiếu subject/content và không có template_code hợp lệ | `{ "error": "Missing subject or content (provide them or supply a template_code)." }` |
 | `429` | rate limit hoặc monthly cap | xem mục Rate Limiting |
 | `500` | DB transaction fail khi queue message | `{ "error": "Failed to queue transactional email", "message": "..." }` |
 
@@ -379,6 +433,25 @@ curl -X POST {APP_URL}/api/v1/transactional/send \
     "content": {"type": "html", "html": "<p>Hello</p>"},
     "tracking": {"open": true, "click": true},
     "metadata": {"signup_id": "abc-123"}
+  }'
+```
+
+### Send với template_code (cURL)
+
+```bash
+curl -X POST {APP_URL}/api/v1/transactional/send \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": {"email": "hr@yourdomain.com", "name": "HR Team"},
+    "to": [{"email": "candidate@example.com"}],
+    "template_code": "shortlist",
+    "variables": {
+      "candidate_name": "Anh",
+      "job_title": "PHP Developer",
+      "company": "Digisource"
+    },
+    "metadata": {"application_id": 789}
   }'
 ```
 
