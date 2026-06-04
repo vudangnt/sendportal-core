@@ -3,6 +3,7 @@
 @section('heading'){{ __('Transactional Templates') }}@endsection
 
 @section('content')
+@php($transactionalTemplates = $templates)
 <div class="container-fluid">
     <div class="row mb-3 align-items-center">
         <div class="col"><h3>Transactional Templates</h3></div>

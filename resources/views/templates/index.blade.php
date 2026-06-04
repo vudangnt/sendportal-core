@@ -67,7 +67,7 @@
         <li class="nav-item">
             <a class="nav-link" id="transactional-kind-tab" data-toggle="tab" href="#transactional-kind-pane" role="tab">
                 <i class="fas fa-paper-plane mr-1"></i> {{ __('Transactional Templates') }}
-                <span class="badge badge-info ml-1">{{ $transactionalTemplates->total() }}</span>
+                <span class="badge badge-info ml-1">{{ $transactionalTemplates->count() }}</span>
             </a>
         </li>
     </ul>

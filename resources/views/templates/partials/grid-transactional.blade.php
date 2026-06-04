@@ -119,6 +119,7 @@
 
 <div class="row">
     @forelse($transactionalTemplates as $template)
+        @php($status = $template->source_status ?? 'custom')
         <div class="col-xl-3 col-lg-4 col-md-4 col-sm-6 col-12 mb-3 template-card" data-name="{{ $template->name }}">
             <div class="card h-100 shadow-sm tx-card">
                 <div class="tx-code-banner">
@@ -126,21 +127,22 @@
                         <span class="tx-code-label">{{ __('Code') }}</span>
                         <code>{{ $template->code ?? '—' }}</code>
                     </span>
-                    <span class="tx-kind-tag">TX</span>
+                    @if($status === 'inherited')
+                        <span class="badge badge-secondary" style="font-size:9px;">{{ __('Default') }}</span>
+                    @elseif($status === 'customized')
+                        <span class="badge badge-success" style="font-size:9px;">{{ __('Customized') }}</span>
+                    @else
+                        <span class="badge" style="font-size:9px;background:#7c3aed;color:#fff;">{{ __('Custom') }}</span>
+                    @endif
                 </div>
 
-                <a href="{{ route('sendportal.templates.transactional.edit', $template->id) }}" class="d-block">
-                    <div class="tx-preview-wrap">
-                        @if($template->content)
-                            <iframe scrolling="no" srcdoc="{{ $template->content }}" class="tx-preview-iframe"></iframe>
-                        @else
-                            <div class="tx-preview-empty">{{ __('No content') }}</div>
-                        @endif
-                        <div class="tx-preview-overlay">
-                            <span class="btn btn-light btn-sm"><i class="fa fa-edit mr-1"></i>{{ __('Edit') }}</span>
-                        </div>
-                    </div>
-                </a>
+                <div class="tx-preview-wrap">
+                    @if($template->content)
+                        <iframe scrolling="no" srcdoc="{{ $template->content }}" class="tx-preview-iframe"></iframe>
+                    @else
+                        <div class="tx-preview-empty">{{ __('No content') }}</div>
+                    @endif
+                </div>
 
                 <div class="tx-meta">
                     <div class="tx-name" title="{{ $template->name }}">{{ $template->name }}</div>
@@ -150,19 +152,44 @@
                 </div>
 
                 <div class="tx-actions">
-                    <a href="{{ route('sendportal.templates.transactional.edit', $template->id) }}"
-                       class="btn btn-outline-primary">
-                        <i class="fa fa-edit"></i> {{ __('Edit') }}
-                    </a>
-                    <form action="{{ route('sendportal.templates.transactional.destroy', $template->id) }}"
-                          method="POST" class="d-inline"
-                          onsubmit="return confirm('{{ __('Are you sure you want to delete this template?') }}')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-outline-danger" title="{{ __('Delete') }}">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </form>
+                    @if($status === 'inherited')
+                        <span class="text-muted" style="font-size:11px;">{{ __('Inherited from default') }}</span>
+                        <form action="{{ route('sendportal.templates.transactional.clone', ['code' => $template->code]) }}"
+                              method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fa fa-pen"></i> {{ __('Customize') }}
+                            </button>
+                        </form>
+                    @elseif($status === 'customized')
+                        <a href="{{ route('sendportal.templates.transactional.edit', $template->id) }}"
+                           class="btn btn-outline-primary">
+                            <i class="fa fa-edit"></i> {{ __('Edit') }}
+                        </a>
+                        <form action="{{ route('sendportal.templates.transactional.destroy', $template->id) }}"
+                              method="POST" class="d-inline"
+                              onsubmit="return confirm('{{ __('Reset to the super-admin default? Your customization will be removed.') }}')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-secondary" title="{{ __('Reset to default') }}">
+                                <i class="fa fa-undo"></i> {{ __('Reset') }}
+                            </button>
+                        </form>
+                    @else
+                        <a href="{{ route('sendportal.templates.transactional.edit', $template->id) }}"
+                           class="btn btn-outline-primary">
+                            <i class="fa fa-edit"></i> {{ __('Edit') }}
+                        </a>
+                        <form action="{{ route('sendportal.templates.transactional.destroy', $template->id) }}"
+                              method="POST" class="d-inline"
+                              onsubmit="return confirm('{{ __('Are you sure you want to delete this template?') }}')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger" title="{{ __('Delete') }}">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>
@@ -171,15 +198,10 @@
             <div class="card">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-paper-plane fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">{{ __('No transactional templates yet') }}</h5>
-                    <p class="text-muted">{{ __('Workspaces get the six default transactional templates auto-seeded — if you see none, browse defaults to clone.') }}</p>
-                    <a href="{{ route('sendportal.templates.transactional.defaults') }}" class="btn btn-primary">
-                        <i class="fa fa-list mr-1"></i> {{ __('Browse defaults') }}
-                    </a>
+                    <h5 class="text-muted">{{ __('No transactional templates') }}</h5>
+                    <p class="text-muted">{{ __('No default templates are configured yet.') }}</p>
                 </div>
             </div>
         </div>
     @endforelse
 </div>
-
-{{ $transactionalTemplates->links() }}
