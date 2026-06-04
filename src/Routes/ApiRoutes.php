@@ -60,7 +60,7 @@ class ApiRoutes
                     $apiRouter->name('transactional.')->prefix('transactional')->group(
                         static function (Router $transactionalRouter) {
                             $transactionalRouter->post('send', 'TransactionalController@send')
-                                ->middleware('check-email-limit')
+                                ->middleware(['require-transactional-api-key', 'check-email-limit'])
                                 ->name('send');
                             $transactionalRouter->get('/', 'TransactionalController@index')->name('index');
                             $transactionalRouter->get('{hash}', 'TransactionalController@show')->name('show');

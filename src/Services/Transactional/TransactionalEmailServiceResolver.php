@@ -11,15 +11,7 @@ class TransactionalEmailServiceResolver
 {
     public function resolve(int $workspaceId, string $fromEmail): ?EmailService
     {
-        $domain = strtolower(Str::after($fromEmail, '@'));
-
-        $service = EmailService::where('workspace_id', $workspaceId)
-            ->whereNotNull('sender_domains')
-            ->get()
-            ->first(function (EmailService $service) use ($domain) {
-                $domains = array_map('strtolower', $service->sender_domains ?? []);
-                return in_array($domain, $domains, true);
-            });
+        $service = $this->matchByDomain($workspaceId, $fromEmail);
 
         if ($service) {
             return $service;
@@ -28,5 +20,28 @@ class TransactionalEmailServiceResolver
         return EmailService::where('workspace_id', $workspaceId)
             ->where('is_default', true)
             ->first();
+    }
+
+    /**
+     * Strict resolution for transactional sends: the from-email domain MUST be
+     * whitelisted in an email service's sender_domains. No is_default fallback
+     * — returns null if no configured service covers the domain.
+     */
+    public function resolveStrict(int $workspaceId, string $fromEmail): ?EmailService
+    {
+        return $this->matchByDomain($workspaceId, $fromEmail);
+    }
+
+    private function matchByDomain(int $workspaceId, string $fromEmail): ?EmailService
+    {
+        $domain = strtolower(Str::after($fromEmail, '@'));
+
+        return EmailService::where('workspace_id', $workspaceId)
+            ->whereNotNull('sender_domains')
+            ->get()
+            ->first(function (EmailService $service) use ($domain) {
+                $domains = array_map('strtolower', $service->sender_domains ?? []);
+                return in_array($domain, $domains, true);
+            });
     }
 }

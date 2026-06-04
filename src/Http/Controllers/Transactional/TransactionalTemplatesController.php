@@ -161,10 +161,10 @@ class TransactionalTemplatesController extends Controller
         $rendered = app(TemplateRenderer::class)->render($template, $data['variables'] ?? []);
 
         $emailService = app(TransactionalEmailServiceResolver::class)
-            ->resolve($workspaceId, $data['from_email']);
+            ->resolveStrict($workspaceId, $data['from_email']);
         if (!$emailService) {
             return response()->json([
-                'error' => 'No email service configured for sender domain',
+                'error' => 'Sender domain not allowed for this workspace',
                 'from_email' => $data['from_email'],
             ], 422);
         }

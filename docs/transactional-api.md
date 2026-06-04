@@ -8,15 +8,16 @@ Base URL: `{APP_URL}/api/v1`
 
 ## Authentication
 
-Tất cả endpoints scope theo workspace, dùng Workspace API Token:
+`POST /transactional/send` yêu cầu **Transactional API key** — loại key riêng do **super-admin cấp per-workspace** (Super Admin → Workspace → "Transactional API Key"). Key general dùng cho subscribers/campaigns API **không** gọi được endpoint send (trả `403`).
 
 ```
-Authorization: Bearer YOUR_WORKSPACE_API_TOKEN
+Authorization: Bearer YOUR_TRANSACTIONAL_API_KEY
 Content-Type: application/json
 Accept: application/json
 ```
 
-Token được tạo từ UI workspace settings. Mỗi token gắn với 1 workspace; request không có hoặc sai token → `401 Unauthorized`.
+- Key gắn với 1 workspace; mỗi workspace tối đa 1 transactional key.
+- Thiếu/sai token → `401`. Dùng key sai loại (general) cho `/transactional/send` → `403 { "error": "This endpoint requires a transactional API key." }`.
 
 ---
 
@@ -184,8 +185,9 @@ Default templates dùng các biến: `candidate_name`, `job_title`, `company`. W
 | Status | Khi nào | Body |
 |---|---|---|
 | `401` | thiếu/sai token | Laravel default |
+| `403` | dùng key general (không phải transactional key) | `{ "error": "This endpoint requires a transactional API key." }` |
 | `422` | validation fail | Laravel validation errors |
-| `422` | không tìm thấy EmailService cho domain | `{ "error": "No email service configured for sender domain", "from_email": "..." }` |
+| `422` | `from.email` domain không nằm trong `sender_domains` (không fallback) | `{ "error": "Sender domain not allowed for this workspace", "from_email": "...", "hint": "..." }` |
 | `422` | `template_code` không tồn tại (cả workspace lẫn default) | `{ "message": "Template not found for code: <code>" }` |
 | `422` | thiếu subject/content và không có template_code hợp lệ | `{ "error": "Missing subject or content (provide them or supply a template_code)." }` |
 | `429` | rate limit hoặc monthly cap | xem mục Rate Limiting |
@@ -277,11 +279,12 @@ Laravel resource collection (chuẩn pagination):
 
 ## Email Service Routing (Sender Domain)
 
-Khi nhận `POST /transactional/send`, `TransactionalEmailServiceResolver` chọn EmailService theo thứ tự:
+Khi nhận `POST /transactional/send`, `TransactionalEmailServiceResolver` chọn EmailService theo **strict whitelist**:
 
-1. EmailService trong workspace có `sender_domains` JSON chứa domain của `from.email`
-2. Fallback về EmailService có `is_default = true`
-3. Cả hai đều miss → `422` (xem error table phía trên)
+1. EmailService trong workspace có `sender_domains` JSON chứa domain của `from.email` → dùng service đó.
+2. Không khớp → `422` (**KHÔNG** fallback `is_default`).
+
+> Domain của `from.email` **bắt buộc** nằm trong `sender_domains` của một email service đã cấu hình trong workspace. Đây là giới hạn chủ đích: transactional key chỉ gửi được từ domain đã setup. `is_default` không còn là fallback cho transactional send (vẫn dùng cho mục đích khác).
 
 #### Cấu hình mapping
 

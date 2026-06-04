@@ -69,12 +69,13 @@ class TransactionalController extends Controller
         ]);
 
         $fromEmail = $validated['from']['email'];
-        $emailService = $this->resolver->resolve($workspaceId, $fromEmail);
+        $emailService = $this->resolver->resolveStrict($workspaceId, $fromEmail);
 
         if (!$emailService) {
             return response()->json([
-                'error' => 'No email service configured for sender domain',
+                'error' => 'Sender domain not allowed for this workspace',
                 'from_email' => $fromEmail,
+                'hint' => 'Configure an email service whose sender_domains includes this domain.',
             ], 422);
         }
 
