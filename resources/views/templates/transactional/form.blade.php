@@ -50,7 +50,7 @@
                         <div class="form-group mb-0">
                             <label class="small text-muted mb-1">{{ __('Code *') }}</label>
                             <input type="text" name="code" class="form-control" required
-                                   pattern="[a-z0-9_-]+"
+                                   pattern="[a-z0-9 _-]+"
                                    value="{{ old('code', $template->code ?? '') }}">
                         </div>
                     </div>

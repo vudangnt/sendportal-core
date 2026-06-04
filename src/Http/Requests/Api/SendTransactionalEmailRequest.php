@@ -42,7 +42,7 @@ class SendTransactionalEmailRequest extends FormRequest
             'content.text' => 'nullable|string',
             'content.mime' => 'nullable|string',
 
-            'template_code' => 'nullable|string|max:64|regex:/^[a-z0-9_-]+$/',
+            'template_code' => 'nullable|string|max:64|regex:/^[a-z0-9 _-]+$/',
             'variables'     => 'nullable|array',
 
             'tracking' => 'nullable|array',
