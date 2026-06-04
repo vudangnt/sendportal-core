@@ -156,6 +156,13 @@ class TransactionalTemplatesController extends Controller
         $source = TransactionalSource::create([
             'workspace_id'    => $workspaceId,
             'request_payload' => [
+                // The dispatcher reads the body from the source payload, so the
+                // rendered content must be stored here (not just metadata).
+                'content'  => ['type' => 'html', 'html' => $rendered['content']],
+                'tracking' => [
+                    'open'  => (bool) ($data['tracking']['open'] ?? true),
+                    'click' => (bool) ($data['tracking']['click'] ?? true),
+                ],
                 'metadata' => ['test' => true, 'template_id' => $template->id],
             ],
         ]);

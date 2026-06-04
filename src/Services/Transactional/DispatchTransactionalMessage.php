@@ -42,7 +42,7 @@ class DispatchTransactionalMessage
             $content = $payload['content'] ?? [];
             $tracking = $payload['tracking'] ?? [];
 
-            $body = $content['type'] === 'mime'
+            $body = ($content['type'] ?? 'html') === 'mime'
                 ? ($content['mime'] ?? '')
                 : ($content['html'] ?? '');
 
