@@ -52,6 +52,7 @@ class TransactionalTemplatesController extends Controller
         $workspaceId = Sendportal::currentWorkspaceId();
         $default = Template::transactional()
             ->whereNull('workspace_id')
+            ->where('is_default', true)
             ->where('code', $code)
             ->firstOrFail();
 
@@ -62,6 +63,7 @@ class TransactionalTemplatesController extends Controller
                 'name'       => $default->name,
                 'subject'    => $default->subject,
                 'content'    => $default->content,
+                'data_json'  => $default->data_json,
                 'is_default' => false,
             ]
         );
