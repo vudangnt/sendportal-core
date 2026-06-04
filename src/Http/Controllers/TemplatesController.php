@@ -53,7 +53,8 @@ class TemplatesController extends Controller
         $all = app(\Sendportal\Base\Services\Templates\TransactionalTemplateResolver::class)
             ->listForWorkspace($workspaceId);
 
-        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage('tx_page');
+        $lastPage = max(1, (int) ceil($all->count() / $perPage));
+        $page = min($lastPage, max(1, (int) \Illuminate\Pagination\Paginator::resolveCurrentPage('tx_page')));
         $transactionalTemplates = new \Illuminate\Pagination\LengthAwarePaginator(
             $all->forPage($page, $perPage)->values(),
             $all->count(),
