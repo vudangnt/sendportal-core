@@ -205,3 +205,7 @@
         </div>
     @endforelse
 </div>
+
+@if($transactionalTemplates instanceof \Illuminate\Contracts\Pagination\Paginator && $transactionalTemplates->hasPages())
+    {{ $transactionalTemplates->links() }}
+@endif

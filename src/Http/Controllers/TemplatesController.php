@@ -43,13 +43,25 @@ class TemplatesController extends Controller
     {
         $workspaceId = Sendportal::currentWorkspaceId();
 
-        $templates = $this->templates->paginate($workspaceId, 'name', [], [],
+        $perPage = 48;
+
+        $templates = $this->templates->paginate($workspaceId, 'name', [], $perPage,
             ['status' => 'active']);
 
-        // Transactional templates as an inheritance view (override → default).
-        $transactionalTemplates = app(
-            \Sendportal\Base\Services\Templates\TransactionalTemplateResolver::class
-        )->listForWorkspace($workspaceId);
+        // Transactional templates as an inheritance view (override → default),
+        // paginated under its own page name and pinned to the transactional tab.
+        $all = app(\Sendportal\Base\Services\Templates\TransactionalTemplateResolver::class)
+            ->listForWorkspace($workspaceId);
+
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage('tx_page');
+        $transactionalTemplates = new \Illuminate\Pagination\LengthAwarePaginator(
+            $all->forPage($page, $perPage)->values(),
+            $all->count(),
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'pageName' => 'tx_page']
+        );
+        $transactionalTemplates->fragment('transactional');
 
         return view('sendportal::templates.index', compact('templates', 'transactionalTemplates'));
     }

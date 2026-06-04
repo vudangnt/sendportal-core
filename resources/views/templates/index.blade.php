@@ -67,7 +67,7 @@
         <li class="nav-item">
             <a class="nav-link" id="transactional-kind-tab" data-toggle="tab" href="#transactional-kind-pane" role="tab">
                 <i class="fas fa-paper-plane mr-1"></i> {{ __('Transactional Templates') }}
-                <span class="badge badge-info ml-1">{{ $transactionalTemplates->count() }}</span>
+                <span class="badge badge-info ml-1">{{ $transactionalTemplates->total() }}</span>
             </a>
         </li>
     </ul>
@@ -137,7 +137,9 @@
 
         // Remember active tab via hash so deep links work and back-button doesn't reset.
         var hash = window.location.hash;
-        if (hash === '#transactional') {
+        var onTransactional = hash.indexOf('transactional') !== -1
+            || new URLSearchParams(window.location.search).has('tx_page');
+        if (onTransactional) {
             $('#transactional-kind-tab').tab('show');
         }
         $('#templateKindTabs a').on('shown.bs.tab', function (e) {
