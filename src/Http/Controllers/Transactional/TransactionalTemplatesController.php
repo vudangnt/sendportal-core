@@ -136,6 +136,7 @@ class TransactionalTemplatesController extends Controller
         $data = $request->validate([
             'to_email'       => 'required|email',
             'from_email'     => 'required|email',
+            'from_name'      => 'nullable|string|max:255',
             'variables'      => 'nullable|array',
             'tracking.open'  => 'nullable|boolean',
             'tracking.click' => 'nullable|boolean',
@@ -166,6 +167,7 @@ class TransactionalTemplatesController extends Controller
             'source_id'       => $source->id,
             'recipient_email' => $data['to_email'],
             'subject'         => $rendered['subject'],
+            'from_name'       => $data['from_name'] ?? null,
             'from_email'      => $data['from_email'],
             'queued_at'       => now(),
         ]);
