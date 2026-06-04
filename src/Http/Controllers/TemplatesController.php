@@ -46,12 +46,10 @@ class TemplatesController extends Controller
         $templates = $this->templates->paginate($workspaceId, 'name', [], [],
             ['status' => 'active']);
 
-        // Transactional templates rendered in a sibling tab so the user can
-        // see both kinds at a glance from one entry point.
-        $transactionalTemplates = Template::transactional()
-            ->where('workspace_id', $workspaceId)
-            ->orderBy('code')
-            ->paginate(12, ['*'], 'tx_page');
+        // Transactional templates as an inheritance view (override → default).
+        $transactionalTemplates = app(
+            \Sendportal\Base\Services\Templates\TransactionalTemplateResolver::class
+        )->listForWorkspace($workspaceId);
 
         return view('sendportal::templates.index', compact('templates', 'transactionalTemplates'));
     }

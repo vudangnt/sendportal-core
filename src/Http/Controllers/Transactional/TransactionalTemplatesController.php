@@ -15,6 +15,7 @@ use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\Template;
 use Sendportal\Base\Models\TransactionalSource;
 use Sendportal\Base\Services\Templates\TemplateRenderer;
+use Sendportal\Base\Services\Templates\TransactionalTemplateResolver;
 use Sendportal\Base\Services\Transactional\TransactionalEmailServiceResolver;
 
 class TransactionalTemplatesController extends Controller
@@ -23,28 +24,8 @@ class TransactionalTemplatesController extends Controller
     {
         $workspaceId = Sendportal::currentWorkspaceId();
 
-        $templates = Template::transactional()
-            ->where('workspace_id', $workspaceId)
-            ->orderBy('code')
-            ->get();
-
-        $defaults = Template::transactional()
-            ->whereNull('workspace_id')
-            ->where('is_default', true)
-            ->get()
-            ->keyBy('code');
-
-        $templates = $templates->map(function ($t) use ($defaults) {
-            $d = $defaults->get($t->code);
-            if (!$d) {
-                $t->source = 'custom';
-            } else {
-                $sigT = md5(($t->subject ?? '') . '|' . ($t->content ?? ''));
-                $sigD = md5(($d->subject ?? '') . '|' . ($d->content ?? ''));
-                $t->source = ($sigT === $sigD) ? 'seeded' : 'modified';
-            }
-            return $t;
-        });
+        $templates = app(TransactionalTemplateResolver::class)
+            ->listForWorkspace($workspaceId);
 
         return view('sendportal::templates.transactional.index', compact('templates'));
     }
