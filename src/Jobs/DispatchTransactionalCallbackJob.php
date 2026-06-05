@@ -48,6 +48,14 @@ class DispatchTransactionalCallbackJob implements ShouldQueue
             return;
         }
 
+        // Per-event selection: null/empty column = all events; otherwise only the listed ones.
+        $enabledEvents = $workspace->transactional_callback_events
+            ? json_decode($workspace->transactional_callback_events, true)
+            : null;
+        if (is_array($enabledEvents) && $enabledEvents !== [] && !in_array($this->event, $enabledEvents, true)) {
+            return;
+        }
+
         /** @var TransactionalSource|null $source */
         $source = TransactionalSource::find($message->source_id);
 
