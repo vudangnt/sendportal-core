@@ -51,6 +51,7 @@ class Template extends BaseModel
     /** @var array */
     protected $casts = [
         'is_default' => 'bool',
+        'is_active'  => 'bool',
     ];
 
     public function campaigns(): HasMany

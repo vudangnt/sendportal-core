@@ -66,6 +66,12 @@ class TransactionalTemplateResolver
                 $t->setAttribute('source_status', 'customized');
                 $items->push($t);
             } else {
+                // Super-admin can disable a default: hide it from the workspace
+                // tab when the workspace hasn't overridden it. (Send API still
+                // resolves it via resolveTemplate — disable is UI-only.)
+                if (!$default->is_active) {
+                    continue;
+                }
                 $default->setAttribute('source_status', 'inherited');
                 $items->push($default);
             }
