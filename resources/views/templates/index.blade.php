@@ -56,6 +56,8 @@
         .kind-meta strong { color: #4a5568; }
     </style>
 
+    @php($showTransactional = optional(auth()->user()->currentWorkspace)->transactional_templates_enabled ?? true)
+
     {{-- Kind Tabs --}}
     <ul class="nav nav-tabs templates-tabs" id="templateKindTabs" role="tablist">
         <li class="nav-item">
@@ -64,12 +66,14 @@
                 <span class="badge badge-secondary ml-1">{{ $templates->total() }}</span>
             </a>
         </li>
+        @if($showTransactional)
         <li class="nav-item">
             <a class="nav-link" id="transactional-kind-tab" data-toggle="tab" href="#transactional-kind-pane" role="tab">
                 <i class="fas fa-paper-plane mr-1"></i> {{ __('Transactional Templates') }}
                 <span class="badge badge-info ml-1">{{ $transactionalTemplates->total() }}</span>
             </a>
         </li>
+        @endif
     </ul>
 
     <div class="tab-content">
@@ -95,6 +99,7 @@
         </div>
 
         {{-- Transactional tab --}}
+        @if($showTransactional)
         <div class="tab-pane fade" id="transactional-kind-pane" role="tabpanel">
             <div class="kind-meta transactional">
                 <strong>{{ __('Transactional templates') }}</strong> —
@@ -116,6 +121,7 @@
 
             @include('sendportal::templates.partials.grid-transactional')
         </div>
+        @endif
     </div>
 
 @endsection
@@ -135,7 +141,8 @@
             $('#template-count').text(count + ' {{ __("templates") }}');
         });
 
-        // Remember active tab via hash so deep links work and back-button doesn't reset.
+        // Keep the transactional tab active across deep links AND pagination
+        // (paginator links carry #transactional and a tx_page query param).
         var hash = window.location.hash;
         var onTransactional = hash.indexOf('transactional') !== -1
             || new URLSearchParams(window.location.search).has('tx_page');
