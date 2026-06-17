@@ -18,7 +18,8 @@ class RedesignDefaultTemplatesMigrationTest extends TestCase
 
         $this->assertNotNull($tpl, 'interviewed default template should exist');
         $this->assertNull($tpl->data_json, 'data_json must be nulled so raw HTML is source of truth');
-        $this->assertStringContainsString('border-top:4px solid #4f46e5', $tpl->content);
+        // The 4px colored top border was removed by 2026_06_17_110000.
+        $this->assertStringNotContainsString('border-top:4px solid', $tpl->content);
         $this->assertStringContainsString('{{ brand_header_html }}', $tpl->content);
         $this->assertStringContainsString('{{ brand_social_html }}', $tpl->content);
         $this->assertStringContainsString('{{ brand_name }}', $tpl->content);
