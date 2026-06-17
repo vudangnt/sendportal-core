@@ -16,6 +16,7 @@ use Sendportal\Base\Http\Resources\TransactionalSourceResource;
 use Sendportal\Base\Jobs\SendTransactionalMessageJob;
 use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\TransactionalSource;
+use Sendportal\Base\Services\Templates\BrandingVariableProvider;
 use Sendportal\Base\Services\Templates\TemplateRenderer;
 use Sendportal\Base\Services\Templates\TransactionalTemplateResolver;
 use Sendportal\Base\Services\Transactional\TransactionalEmailServiceResolver;
@@ -45,8 +46,10 @@ class TransactionalController extends Controller
         if (!empty($validated['template_code'])) {
             $template = app(TransactionalTemplateResolver::class)
                 ->resolveTemplate($workspaceId, $validated['template_code']);
+            $mergedVars = app(BrandingVariableProvider::class)
+                ->forWorkspace($workspaceId, $validated['variables'] ?? []);
             $rendered = app(TemplateRenderer::class)
-                ->render($template, $validated['variables'] ?? []);
+                ->render($template, $mergedVars);
 
             $resolvedSubject = $rendered['subject'];
             $resolvedContent = $rendered['content'];
