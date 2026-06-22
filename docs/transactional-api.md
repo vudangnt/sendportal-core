@@ -140,6 +140,8 @@ Khi có `template_code`:
 
 Default templates dùng các biến: `candidate_name`, `job_title`, `company`. Workspace có thể tạo template cùng `code` để override default, hoặc tạo code riêng.
 
+> Mỗi template lưu 2 cột: `content` (HTML dùng để gửi mail, render `{{ var }}` + branding) và `data_json` (design Unlayer mà visual editor đọc). Default templates được seed với **design Unlayer đa block** (`TransactionalTemplateDesignBuilder` + dataset `TransactionalTemplateSeedData`): header/footer là block HTML chứa các composite branding (`{{ brand_header_html }}`, `{{ brand_contact_html }}`, `{{ brand_social_html }}`), còn **tiêu đề, đoạn nội dung và nút CTA là block Unlayer chuẩn nên sửa trực quan được** (không còn là một khối HTML tĩnh). Branding nằm trong block HTML để vòng edit→Save trên editor không làm mất placeholder.
+
 #### Field reference
 
 | Field | Type | Required | Constraint |
