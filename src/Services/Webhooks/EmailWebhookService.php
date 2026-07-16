@@ -24,8 +24,21 @@ use Sendportal\Pro\Models\AutomationSchedule;
 
 class EmailWebhookService
 {
+    /**
+     * Provider webhooks normalize event timestamps to UTC, but Eloquent stores a
+     * Carbon's wall-clock verbatim (no tz conversion) while now()-based columns
+     * (sent_at, queued_at) are written in app timezone. Convert webhook timestamps
+     * to app timezone before persisting so all message timestamps share one tz.
+     */
+    private function localize(Carbon $timestamp): Carbon
+    {
+        return $timestamp->copy()->setTimezone(config('app.timezone', 'UTC'));
+    }
+
     public function handleDelivery(string $messageId, Carbon $timestamp): void
     {
+        $timestamp = $this->localize($timestamp);
+
         $updated = DB::table('sendportal_messages')->where('message_id', $messageId)->whereNull('delivered_at')->update([
             'delivered_at' => $timestamp
         ]);
@@ -43,6 +56,8 @@ class EmailWebhookService
      */
     public function handleOpen(string $messageId, Carbon $timestamp, ?string $ipAddress): void
     {
+        $timestamp = $this->localize($timestamp);
+
         /** @var Message $message */
         $message = Message::where('message_id', $messageId)->first();
 
@@ -72,6 +87,8 @@ class EmailWebhookService
      */
     public function handleClick(string $messageId, Carbon $timestamp, ?string $url): void
     {
+        $timestamp = $this->localize($timestamp);
+
         /* @var Message $message */
         $message = Message::where('message_id', $messageId)->first();
 
@@ -130,6 +147,8 @@ class EmailWebhookService
 
     public function handleComplaint(string $messageId, Carbon $timestamp): void
     {
+        $timestamp = $this->localize($timestamp);
+
         /* @var Message $message */
         $message = Message::where('message_id', $messageId)->first();
 
@@ -138,6 +157,8 @@ class EmailWebhookService
         }
 
         if (!$message->complained_at) {
+            // complained_at was previously guarded on but never written.
+            $message->complained_at = $timestamp;
             $message->unsubscribed_at = $timestamp;
             $message->save();
 
@@ -149,6 +170,10 @@ class EmailWebhookService
 
     public function handlePermanentBounce($messageId, $timestamp): void
     {
+        if ($timestamp instanceof Carbon) {
+            $timestamp = $this->localize($timestamp);
+        }
+
         /* @var Message $message */
         $message = Message::where('message_id', $messageId)->first();
 
@@ -168,6 +193,10 @@ class EmailWebhookService
 
     public function handleFailure($messageId, $severity, $description, $timestamp): void
     {
+        if ($timestamp instanceof Carbon) {
+            $timestamp = $this->localize($timestamp);
+        }
+
         /* @var Message $message */
         $message = Message::where('message_id', $messageId)->first();
 
