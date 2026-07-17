@@ -24,6 +24,9 @@ class MessageOptions
     /** @var MessageTrackingOptions */
     private $trackingOptions;
 
+    /** @var array<int, array{filename: string, content_type: string, body: string}> */
+    private $attachments = [];
+
     /**
      * @return string
      */
@@ -101,6 +104,20 @@ class MessageOptions
     public function setTrackingOptions(MessageTrackingOptions $trackingOptions): self
     {
         $this->trackingOptions = $trackingOptions;
+
+        return $this;
+    }
+
+    /** @return array<int, array{filename: string, content_type: string, body: string}> */
+    public function getAttachments(): array
+    {
+        return $this->attachments;
+    }
+
+    /** @param array<int, array{filename: string, content_type: string, body: string}> $attachments */
+    public function setAttachments(array $attachments): self
+    {
+        $this->attachments = $attachments;
 
         return $this;
     }

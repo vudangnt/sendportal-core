@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sendportal\Base\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Sendportal\Base\Services\Transactional\AttachmentFetcher;
 
 class SendTransactionalEmailRequest extends FormRequest
 {
@@ -44,6 +45,12 @@ class SendTransactionalEmailRequest extends FormRequest
 
             'template_code' => 'nullable|string|max:64|regex:/^[a-z0-9 _-]+$/',
             'variables'     => 'nullable|array',
+
+            // Files are downloaded from these public URLs at request time and
+            // attached to the email (see AttachmentFetcher for the size/SSRF rules).
+            'attachments'              => 'nullable|array|max:' . AttachmentFetcher::MAX_COUNT,
+            'attachments.*.url'        => 'required|url|max:2048',
+            'attachments.*.filename'   => 'nullable|string|max:255',
 
             'tracking' => 'nullable|array',
             'tracking.open' => 'nullable|boolean',

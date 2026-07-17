@@ -19,6 +19,7 @@ use Sendportal\Base\Models\TransactionalSource;
 use Sendportal\Base\Services\Templates\BrandingVariableProvider;
 use Sendportal\Base\Services\Templates\TemplateRenderer;
 use Sendportal\Base\Services\Templates\TransactionalTemplateResolver;
+use Sendportal\Base\Services\Transactional\AttachmentFetcher;
 use Sendportal\Base\Services\Transactional\TransactionalEmailServiceResolver;
 
 class TransactionalController extends Controller
@@ -82,6 +83,23 @@ class TransactionalController extends Controller
             ], 422);
         }
 
+        // Download the attachments now so the caller gets immediate feedback on an
+        // unreachable/oversized/blocked file instead of an async delivery failure.
+        $storedAttachments = [];
+
+        if (!empty($validated['attachments'])) {
+            try {
+                $storedAttachments = app(AttachmentFetcher::class)->fetch($validated['attachments']);
+            } catch (Exception $e) {
+                return response()->json([
+                    'error' => 'Attachment could not be processed',
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            $validated['attachments'] = $storedAttachments;
+        }
+
         try {
             DB::beginTransaction();
 
@@ -122,6 +140,11 @@ class TransactionalController extends Controller
             ], 201);
         } catch (Exception $e) {
             DB::rollBack();
+
+            // Nothing was queued, so the downloaded files would never be sent or cleaned up.
+            if ($storedAttachments !== []) {
+                app(AttachmentFetcher::class)->cleanup(array_column($storedAttachments, 'path'));
+            }
 
             return response()->json([
                 'error' => 'Failed to queue transactional email',

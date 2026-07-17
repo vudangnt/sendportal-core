@@ -14,8 +14,10 @@ class PostmarkMailAdapter extends BaseMailAdapter
     /** @var PostmarkClient */
     protected $client;
 
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
     {
+        $this->guardAttachments($attachments);
+
         $result = $this->resolveClient()->sendEmail(
             "{$fromName} <{$fromEmail}>",
             $toEmail,

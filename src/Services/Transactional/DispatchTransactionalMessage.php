@@ -6,6 +6,7 @@ namespace Sendportal\Base\Services\Transactional;
 
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Sendportal\Base\Events\MessageFailedEvent;
 use Sendportal\Base\Models\EmailService;
 use Sendportal\Base\Models\Message;
@@ -19,11 +20,13 @@ class DispatchTransactionalMessage
 {
     protected RelayMessage $relayMessage;
     protected MarkAsSent $markAsSent;
+    protected AttachmentFetcher $attachmentFetcher;
 
-    public function __construct(RelayMessage $relayMessage, MarkAsSent $markAsSent)
+    public function __construct(RelayMessage $relayMessage, MarkAsSent $markAsSent, AttachmentFetcher $attachmentFetcher)
     {
         $this->relayMessage = $relayMessage;
         $this->markAsSent = $markAsSent;
+        $this->attachmentFetcher = $attachmentFetcher;
     }
 
     /**
@@ -55,7 +58,8 @@ class DispatchTransactionalMessage
                 ->setFromEmail($message->from_email)
                 ->setFromName((string) $message->from_name)
                 ->setSubject($message->subject)
-                ->setTrackingOptions($trackingOptions);
+                ->setTrackingOptions($trackingOptions)
+                ->setAttachments($this->loadAttachments($payload));
 
             $messageId = $this->relayMessage->handle($body, $options, $emailService);
 
@@ -64,6 +68,8 @@ class DispatchTransactionalMessage
             }
 
             $this->markAsSent->handle($message, $messageId);
+
+            $this->cleanupAttachments($message);
 
             Log::info('Transactional message dispatched.', [
                 'message_id' => $messageId,
@@ -80,6 +86,64 @@ class DispatchTransactionalMessage
             event(new MessageFailedEvent($message, $e->getMessage()));
 
             throw $e;
+        }
+    }
+
+    /**
+     * Read the attachment bytes stored at request time back off the disk.
+     *
+     * @return array<int, array{filename: string, content_type: string, body: string}>
+     */
+    protected function loadAttachments(array $payload): array
+    {
+        $attachments = [];
+
+        foreach ($payload['attachments'] ?? [] as $attachment) {
+            $path = $attachment['path'] ?? null;
+
+            if (!$path || !Storage::exists($path)) {
+                throw new Exception(sprintf(
+                    'Attachment "%s" is no longer available in storage (%s).',
+                    $attachment['filename'] ?? 'unknown',
+                    (string) $path
+                ));
+            }
+
+            $attachments[] = [
+                'filename' => $attachment['filename'] ?? 'attachment',
+                'content_type' => $attachment['content_type'] ?? 'application/octet-stream',
+                'body' => (string) Storage::get($path),
+            ];
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * Drop the temporary attachment bytes once every recipient of this source
+     * has been sent (messages of one source share the same stored files).
+     */
+    protected function cleanupAttachments(Message $message): void
+    {
+        $source = $message->source;
+
+        if (!$source instanceof TransactionalSource) {
+            return;
+        }
+
+        $paths = array_filter(array_column($source->request_payload['attachments'] ?? [], 'path'));
+
+        if ($paths === []) {
+            return;
+        }
+
+        $pending = Message::where('source_type', TransactionalSource::class)
+            ->where('source_id', $source->id)
+            ->whereNull('sent_at')
+            ->exists();
+
+        if (!$pending) {
+            $this->attachmentFetcher->cleanup($paths);
         }
     }
 }
