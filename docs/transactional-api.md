@@ -151,13 +151,13 @@ Default templates dùng các biến: `candidate_name`, `job_title`, `company`. W
 | `to` | array | yes | min 1 item |
 | `to[].email` | string | yes | valid email |
 | `to[].name` | string | no | max 255 |
-| `cc` / `bcc` | array | no | same shape as `to` |
+| `cc` / `bcc` | array | no | same shape as `to` — **được nhận nhưng CHƯA gửi** (chỉ `to` được gửi) |
 | `subject` | string | yes¹ | max 998 chars (RFC 5322) |
 | `content.type` | enum | yes¹ | `html` \| `mime` |
 | `content.html` | string | required if `type=html`¹ | — |
 | `content.text` | string | no | plain-text alternative |
-| `content.mime` | string | required if `type=mime` | full MIME message |
-| `template_code` | string | no | `^[a-z0-9_-]+$`, max 64. Khi có → render template thay cho `subject`/`content` |
+| `content.mime` | string | required if `type=mime` | full MIME message — **chưa được relay** (dùng `type=html`) |
+| `template_code` | string | no | `^[a-z0-9 _-]+$`, max 64 (dấu cách hợp lệ, vd `send to client`, `pass probation`). Khi có → render template thay cho `subject`/`content` |
 | `variables` | object | no | key-value chèn vào placeholder `{{ key }}` của template |
 | `tracking.open` | bool | no | default true tùy provider |
 | `tracking.click` | bool | no | default true tùy provider |
@@ -206,17 +206,17 @@ Trả về tracking chi tiết của một transactional send.
 ```json
 {
   "transactional_hash": "9b1f6c2e-...",
-  "created_at": "2026-05-05T10:00:00+00:00",
+  "created_at": "2026-05-05T10:00:00+07:00",
   "messages": [
     {
       "message_hash": "a1b2c3d4-...",
       "recipient": "user@example.com",
       "subject": "Interview Invitation",
-      "queued_at": "2026-05-05T10:00:00+00:00",
-      "sent_at": "2026-05-05T10:00:05+00:00",
-      "delivered_at": "2026-05-05T10:00:10+00:00",
-      "opened_at": "2026-05-05T10:05:00+00:00",
-      "clicked_at": "2026-05-05T10:06:00+00:00",
+      "queued_at": "2026-05-05T10:00:00+07:00",
+      "sent_at": "2026-05-05T10:00:05+07:00",
+      "delivered_at": "2026-05-05T10:00:10+07:00",
+      "opened_at": "2026-05-05T10:05:00+07:00",
+      "clicked_at": "2026-05-05T10:06:00+07:00",
       "bounced_at": null,
       "complained_at": null,
       "open_count": 2,
@@ -256,7 +256,7 @@ Laravel resource collection (chuẩn pagination):
   "data": [
     {
       "transactional_hash": "9b1f6c2e-...",
-      "created_at": "2026-05-05T10:00:00+00:00",
+      "created_at": "2026-05-05T10:00:00+07:00",
       "messages": [ /* same shape as show endpoint */ ]
     }
   ],
@@ -338,7 +338,7 @@ Nếu `transactional_callback_url` rỗng → callback được skip silently.
   "transactional_hash": "9b1f6c2e-...",
   "message_hash": "a1b2c3d4-...",
   "recipient": "user@example.com",
-  "timestamp": "2026-05-05T10:05:00+00:00",
+  "timestamp": "2026-05-05T10:05:00+07:00",
   "data": {
     "open_count": 2
   },
