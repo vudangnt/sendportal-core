@@ -159,11 +159,48 @@ Default templates dùng các biến: `candidate_name`, `job_title`, `company`. W
 | `content.mime` | string | required if `type=mime` | full MIME message — **chưa được relay** (dùng `type=html`) |
 | `template_code` | string | no | `^[a-z0-9 _-]+$`, max 64 (dấu cách hợp lệ, vd `send to client`, `pass probation`). Khi có → render template thay cho `subject`/`content` |
 | `variables` | object | no | key-value chèn vào placeholder `{{ key }}` của template |
+| `attachments` | array | no | tối đa **10** file — URL public, API tự tải & đính kèm (xem [Attachments](#attachments)) |
+| `attachments[].url` | string | yes | url `http(s)` public, max 2048. Mỗi file **< 25MB**, tổng **≤ 25MB** |
+| `attachments[].filename` | string | no | max 255. Mặc định lấy từ `Content-Disposition` rồi tới path của URL |
 | `tracking.open` | bool | no | default true tùy provider |
 | `tracking.click` | bool | no | default true tùy provider |
 | `metadata` | object | no | echo lại trong webhook callback |
 
 > ¹ `subject` + `content` chỉ **bắt buộc khi KHÔNG có `template_code`**. Có `template_code` thì chúng optional (lấy từ template, nhưng vẫn override được nếu client gửi kèm).
+
+<a id="attachments"></a>
+#### Attachments (truyền URL public, API tải & đính kèm)
+
+```jsonc
+{
+  "from": { "email": "hr@yourdomain.com" },
+  "to":   [{ "email": "candidate@example.com" }],
+  "template_code": "offered",
+  "variables": { "candidate_name": "Minh Anh", "job_title": "Backend Engineer", "company": "ACME Corp" },
+  "attachments": [
+    { "url": "https://files.example.com/offer.pdf", "filename": "Offer Letter.pdf" },
+    { "url": "https://files.example.com/handbook.pdf" }
+  ]
+}
+```
+
+File được **tải ngay lúc gọi API** (không phải lúc gửi), nên lỗi file trả về `422` liền thay vì fail bất đồng bộ. Sau khi gửi xong, file tạm tự động bị xoá.
+
+**Giới hạn:** mỗi file **< 25MB**, tổng tất cả file **≤ 25MB**, tối đa **10 file**. (Gmail/Outlook chặn > ~25MB; mã hoá MIME còn làm phình ~37%.) Dung lượng được kiểm **trong lúc stream** nên server khai `Content-Length` sai vẫn bị cắt đúng ngưỡng.
+
+**Ràng buộc URL (chống SSRF).** URL bị từ chối nếu: scheme khác `http`/`https`; trỏ tới địa chỉ không public (loopback kể cả IPv6 `::1`, dải private `10/8` `172.16/12` `192.168/16`, link-local như metadata `169.254.169.254`); redirect quá 3 lần hoặc redirect tới địa chỉ bị chặn (kiểm lại từng hop); không resolve được / timeout / body rỗng. Filename được làm sạch (`../../etc/passwd` → `passwd`).
+
+> **Chỉ SES.** Attachment gửi qua Amazon SES (v2 raw MIME, cho tới 40MB). Workspace dùng Mailgun/SendGrid/Postmark/Mailjet/Postal/SMTP sẽ **báo lỗi rõ** thay vì âm thầm bỏ file. Tracking open/click vẫn hoạt động bình thường khi có đính kèm.
+
+**Lỗi `422`** — body: `{ "error": "Attachment could not be processed", "message": "…" }`
+
+| Nguyên nhân | `message` |
+|---|---|
+| File quá lớn | `attachments.0: file exceeds the 25 MB per-file limit.` |
+| Tổng file quá lớn | `attachments.1: attachments exceed the 25 MB total limit.` |
+| URL nội bộ bị chặn | `attachments.0: url resolves to a non-public address (…) and was blocked.` |
+| Sai scheme | `attachments.0: only http/https urls are allowed (got "file").` |
+| Quá 10 file | `Too many attachments: 11 (max 10).` |
 
 #### Response `201 Created`
 
