@@ -29,6 +29,11 @@ abstract class BaseCampaignTenantRepository extends BaseTenantRepository impleme
         return $this->getQueryBuilder($workspaceId)
             ->where('status_id', CampaignStatus::STATUS_SENT)
             ->with($relations)
+            // Newest first. Without an explicit order the DB returned storage
+            // order, so the dashboard listed the oldest campaigns first.
+            // Matches the campaigns "Sent" tab, which orders by created_atDesc.
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
     }
 
