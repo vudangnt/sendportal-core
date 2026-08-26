@@ -26,19 +26,21 @@ class SesMailAdapter extends BaseMailAdapter
     /**
      * @throws BindingResolutionException
      */
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = [], ?string $replyTo = null): string
     {
         // TODO(david): It isn't clear whether it is possible to set per-message tracking for SES.
 
         // Attachments require a raw MIME message. The v1 SendRawEmail API caps the
         // encoded message at 10MB, so attachment sends go through SES v2 (40MB).
         // Without attachments we keep the simple v1 path unchanged.
+        $replyTo = ($replyTo !== null && trim($replyTo) !== '') ? $replyTo : null;
+
         if ($attachments !== []) {
-            return $this->sendRawV2($fromEmail, $fromName, $toEmail, $subject, $content, $attachments);
+            return $this->sendRawV2($fromEmail, $fromName, $toEmail, $subject, $content, $attachments, $replyTo);
         }
 
-        $result = $this->throttleSending(function () use ($fromEmail, $fromName, $toEmail, $subject, $trackingOptions, $content) {
-            return $this->resolveClient()->sendEmail([
+        $result = $this->throttleSending(function () use ($fromEmail, $fromName, $toEmail, $subject, $content, $replyTo) {
+            $params = [
                 'Source' => $fromName . ' <' . $fromEmail . '>',
 
                 'Destination' => [
@@ -56,7 +58,13 @@ class SesMailAdapter extends BaseMailAdapter
                     ],
                 ],
                 'ConfigurationSetName' => Arr::get($this->config, 'configuration_set_name'),
-            ]);
+            ];
+
+            if ($replyTo !== null) {
+                $params['ReplyToAddresses'] = [$replyTo];
+            }
+
+            return $this->resolveClient()->sendEmail($params);
         });
 
         return $this->resolveMessageId($result);
@@ -71,13 +79,17 @@ class SesMailAdapter extends BaseMailAdapter
      * @param array<int, array{filename: string, content_type: string, body: string}> $attachments
      * @throws BindingResolutionException
      */
-    protected function sendRawV2(string $fromEmail, string $fromName, string $toEmail, string $subject, string $content, array $attachments): string
+    protected function sendRawV2(string $fromEmail, string $fromName, string $toEmail, string $subject, string $content, array $attachments, ?string $replyTo = null): string
     {
         $email = (new Email())
             ->from(trim($fromName) !== '' ? sprintf('%s <%s>', $fromName, $fromEmail) : $fromEmail)
             ->to($toEmail)
             ->subject($subject)
             ->html($content);
+
+        if ($replyTo !== null && trim($replyTo) !== '') {
+            $email->replyTo($replyTo);
+        }
 
         foreach ($attachments as $attachment) {
             $email->attach(

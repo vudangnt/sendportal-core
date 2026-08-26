@@ -19,7 +19,7 @@ class MailgunMailAdapter extends BaseMailAdapter
         'EU' => 'https://api.eu.mailgun.net/v3'
     ];
 
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = [], ?string $replyTo = null): string
     {
         $this->guardAttachments($attachments);
 
@@ -31,6 +31,10 @@ class MailgunMailAdapter extends BaseMailAdapter
             'o:tracking-clicks' => (string) $trackingOptions->isClickTracking(),
             'o:tracking-opens' => (string) $trackingOptions->isOpenTracking()
         ];
+
+        if ($replyTo !== null && trim($replyTo) !== '') {
+            $parameters['h:Reply-To'] = $replyTo;
+        }
 
         $result = $this->resolveClient()->messages()->send($this->resolveDomain(), $parameters);
 

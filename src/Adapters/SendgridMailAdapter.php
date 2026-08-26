@@ -23,7 +23,7 @@ class SendgridMailAdapter extends BaseMailAdapter
      * @throws TypeException
      * @throws \Throwable
      */
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = [], ?string $replyTo = null): string
     {
         $this->guardAttachments($attachments);
 
@@ -34,6 +34,10 @@ class SendgridMailAdapter extends BaseMailAdapter
         $email->addContent('text/html', $content);
         $email->setClickTracking($trackingOptions->isClickTracking());
         $email->setOpenTracking($trackingOptions->isOpenTracking());
+
+        if ($replyTo !== null && trim($replyTo) !== '') {
+            $email->setReplyTo($replyTo);
+        }
 
         $response = $this->resolveClient()->send($email);
 

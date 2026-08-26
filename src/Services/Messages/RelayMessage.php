@@ -33,7 +33,8 @@ class RelayMessage
                 $messageOptions->getSubject(),
                 $messageOptions->getTrackingOptions(),
                 $mergedContent,
-                $messageOptions->getAttachments()
+                $messageOptions->getAttachments(),
+                $messageOptions->getReplyTo()
             );
     }
 }

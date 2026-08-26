@@ -17,14 +17,14 @@ class SmtpAdapter extends BaseMailAdapter
     /** @var Swift_SmtpTransport */
     protected $transport;
 
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = [], ?string $replyTo = null): string
     {
         $this->guardAttachments($attachments);
 
         $failedRecipients = [];
 
         try {
-            $result = $this->resolveClient()->send($this->resolveMessage($subject, $content, $fromEmail, $fromName, $toEmail), $failedRecipients);
+            $result = $this->resolveClient()->send($this->resolveMessage($subject, $content, $fromEmail, $fromName, $toEmail, $replyTo), $failedRecipients);
         } catch (Swift_TransportException $e) {
             return $this->resolveMessageId(0);
         }
@@ -62,12 +62,16 @@ class SmtpAdapter extends BaseMailAdapter
         return $this->transport;
     }
 
-    protected function resolveMessage(string $subject, string $content, string $fromEmail, string $fromName, string $toEmail): Swift_Message
+    protected function resolveMessage(string $subject, string $content, string $fromEmail, string $fromName, string $toEmail, ?string $replyTo = null): Swift_Message
     {
         $msg = new Swift_Message($subject, $content, 'text/html');
 
         $msg->setTo($toEmail);
         $msg->setFrom($fromEmail, $fromName);
+
+        if ($replyTo !== null && trim($replyTo) !== '') {
+            $msg->setReplyTo($replyTo);
+        }
 
         return $msg;
     }

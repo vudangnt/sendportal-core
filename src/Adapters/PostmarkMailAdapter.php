@@ -14,7 +14,7 @@ class PostmarkMailAdapter extends BaseMailAdapter
     /** @var PostmarkClient */
     protected $client;
 
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = [], ?string $replyTo = null): string
     {
         $this->guardAttachments($attachments);
 
@@ -26,7 +26,7 @@ class PostmarkMailAdapter extends BaseMailAdapter
             null,
             null,
             $trackingOptions->isOpenTracking(),
-            null,
+            ($replyTo !== null && trim($replyTo) !== '') ? $replyTo : null,
             null,
             null,
             null,

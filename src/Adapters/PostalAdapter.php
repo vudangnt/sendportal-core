@@ -19,7 +19,7 @@ class PostalAdapter extends BaseMailAdapter
      * @throws TypeException
      * @throws \Throwable
      */
-    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = []): string
+    public function send(string $fromEmail, string $fromName, string $toEmail, string $subject, MessageTrackingOptions $trackingOptions, string $content, array $attachments = [], ?string $replyTo = null): string
     {
         $this->guardAttachments($attachments);
 
@@ -30,6 +30,9 @@ class PostalAdapter extends BaseMailAdapter
         $message->from($fromName.' <'.$fromEmail.'>');
         $message->subject($subject);
         $message->htmlBody($content);
+        if ($replyTo !== null && trim($replyTo) !== '') {
+            $message->replyTo($replyTo);
+        }
         $response = $message->send();
         
         return $this->resolveMessageId($response);

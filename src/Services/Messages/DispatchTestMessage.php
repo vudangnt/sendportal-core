@@ -108,6 +108,7 @@ class DispatchTestMessage
             ->setTo($message->recipient_email)
             ->setFromEmail($message->from_email)
             ->setFromName($message->from_name)
+            ->setReplyTo($message->reply_to_email)
             ->setSubject($message->subject)
             ->setTrackingOptions($trackingOptions);
 
@@ -136,6 +137,7 @@ class DispatchTestMessage
             'subject' => '[Test] ' . $campaign->subject,
             'from_name' => $campaign->from_name,
             'from_email' => $campaign->from_email,
+            'reply_to_email' => $campaign->reply_to_email,
             'hash' => 'abc123',
         ]);
     }

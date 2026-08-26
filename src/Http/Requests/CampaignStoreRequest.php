@@ -37,6 +37,11 @@ class CampaignStoreRequest extends FormRequest
                 'max:255',
                 'email',
             ],
+            'reply_to_email' => [
+                'nullable',
+                'max:255',
+                'email',
+            ],
             'email_service_id' => [
                 'required',
                 'integer',
@@ -68,6 +73,7 @@ class CampaignStoreRequest extends FormRequest
             'from_name.required' => __('The from name field is required.'),
             'from_email.required' => __('The from email field is required.'),
             'from_email.email' => __('The from email must be a valid email address.'),
+            'reply_to_email.email' => __('The reply-to email must be a valid email address.'),
             'email_service_id.required' => __('Please select an email service.'),
         ];
     }
