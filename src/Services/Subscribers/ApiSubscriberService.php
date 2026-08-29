@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sendportal\Base\Services\Subscribers;
 
+use Sendportal\Base\Support\SkillName;
 use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -110,8 +111,7 @@ class ApiSubscriberService
             $dataArray[$targetKey] = [];
         }
 
-        $values = array_map('trim', explode(',', $stringValue));
-        $values = array_filter($values, fn($val) => !empty($val));
+        $values = SkillName::splitList($stringValue);
         $dataArray[$targetKey] = array_merge($dataArray[$targetKey], $values);
 
         if ($fieldName !== $targetKey) {
