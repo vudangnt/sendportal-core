@@ -41,7 +41,7 @@ class Tag extends BaseModel
 
     /** @var array */
     protected $fillable = [
-        'name','parent_id'
+        'name','parent_id','code','dimension','source'
     ];
 
     /** @var array */
