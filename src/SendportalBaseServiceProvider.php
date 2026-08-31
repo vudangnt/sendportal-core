@@ -9,6 +9,7 @@ use Sendportal\Base\Console\Commands\BackfillTagCodes;
 use Sendportal\Base\Console\Commands\CampaignDispatchCommand;
 use Sendportal\Base\Console\Commands\TagTaxonomyReport;
 use Sendportal\Base\Console\Commands\GroupSkillVariantsCommand;
+use Sendportal\Base\Console\Commands\ImportSkillsAsTags;
 use Sendportal\Base\Providers\EventServiceProvider;
 use Sendportal\Base\Providers\FormServiceProvider;
 use Sendportal\Base\Providers\ResolverProvider;
@@ -45,6 +46,7 @@ class SendportalBaseServiceProvider extends ServiceProvider
                 CampaignDispatchCommand::class,
                 TagTaxonomyReport::class,
                 GroupSkillVariantsCommand::class,
+                ImportSkillsAsTags::class,
             ]);
 
             $this->app->booted(function () {
