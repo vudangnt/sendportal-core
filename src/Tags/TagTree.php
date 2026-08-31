@@ -19,6 +19,12 @@ use Sendportal\Base\Repositories\TagTenantRepository;
  */
 final class TagTree
 {
+    /** Dimension không render sẵn mà nạp qua tìm kiếm. */
+    public const DIMENSION_TIM_KIEM = 'SKILL';
+
+    /** Nhóm cho tag chưa có dimension — phải có, nếu không chúng biến mất khỏi UI. */
+    public const NHOM_KHAC = '_KHAC';
+
     public function __construct(private readonly TagTenantRepository $tags)
     {
     }
@@ -56,6 +62,46 @@ final class TagTree
         }
 
         return $goc;
+    }
+
+    /**
+     * Cây gốc đã nhóm theo dimension, cho UI chia tab.
+     *
+     * KHÔNG gồm SKILL: sau Task 1.10 có ~2.252 tag SKILL, render sẵn thì HTML lên 5MB
+     * và tìm kiếm phải lặp vài nghìn node DOM mỗi phím gõ (spec §8.6). Tab đó nạp qua
+     * TagSearchController.
+     *
+     * Nhóm theo dimension THỰC CÓ chứ không hardcode danh sách: dimension mới sẽ tự có
+     * tab thay vì rơi mất. Tag chưa có dimension (backfill bỏ qua vì trùng mã) vào nhóm
+     * KHAC — không được để chúng biến mất khỏi màn chọn người nhận.
+     *
+     * @return array<string, array<int, array>>
+     */
+    public function rootsByDimension(int $workspaceId, string $childKey = 'child'): array
+    {
+        $nhom = [];
+
+        foreach ($this->roots($workspaceId, $childKey) as $tag) {
+            $dimension = trim((string) ($tag['dimension'] ?? ''));
+
+            if ($dimension === self::DIMENSION_TIM_KIEM) {
+                continue;
+            }
+
+            $nhom[$dimension === '' ? self::NHOM_KHAC : $dimension][] = $tag;
+        }
+
+        return $nhom;
+    }
+
+    /** Số tag gốc thuộc dimension nạp-qua-tìm-kiếm, để hiện lên nhãn tab. */
+    public function countSearchableRoots(int $workspaceId): int
+    {
+        return DB::table('sendportal_tags')
+            ->where('workspace_id', $workspaceId)
+            ->where('dimension', self::DIMENSION_TIM_KIEM)
+            ->where(fn ($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0))
+            ->count();
     }
 
     /**
