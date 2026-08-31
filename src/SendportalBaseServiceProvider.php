@@ -5,6 +5,7 @@ namespace Sendportal\Base;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use Sendportal\Base\Console\Commands\BackfillTagCodes;
 use Sendportal\Base\Console\Commands\CampaignDispatchCommand;
 use Sendportal\Base\Console\Commands\GroupSkillVariantsCommand;
 use Sendportal\Base\Providers\EventServiceProvider;
@@ -39,6 +40,7 @@ class SendportalBaseServiceProvider extends ServiceProvider
             ], 'sendportal-assets');
 
             $this->commands([
+                BackfillTagCodes::class,
                 CampaignDispatchCommand::class,
                 GroupSkillVariantsCommand::class,
             ]);
