@@ -139,6 +139,7 @@ class WebRoutes
                 $appRouter->resource('locations', 'Locations\LocationsController')->except(['show']);
 
                 // Tags.
+                $appRouter->get('tags/search', 'Tags\TagSearchController')->name('tags.search');
                 $appRouter->resource('tags', 'Tags\TagsController')->except(['show']);
 
                 // Skills.
