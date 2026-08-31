@@ -7,6 +7,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Sendportal\Base\Console\Commands\BackfillTagCodes;
 use Sendportal\Base\Console\Commands\CampaignDispatchCommand;
+use Sendportal\Base\Console\Commands\TagTaxonomyReport;
 use Sendportal\Base\Console\Commands\GroupSkillVariantsCommand;
 use Sendportal\Base\Providers\EventServiceProvider;
 use Sendportal\Base\Providers\FormServiceProvider;
@@ -42,6 +43,7 @@ class SendportalBaseServiceProvider extends ServiceProvider
             $this->commands([
                 BackfillTagCodes::class,
                 CampaignDispatchCommand::class,
+                TagTaxonomyReport::class,
                 GroupSkillVariantsCommand::class,
             ]);
 
