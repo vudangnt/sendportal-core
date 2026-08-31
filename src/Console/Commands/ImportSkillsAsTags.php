@@ -94,6 +94,10 @@ class ImportSkillsAsTags extends Command
                         INSERT INTO sendportal_tag_subscriber (tag_id, subscriber_id, created_at, updated_at)
                         SELECT ?, ss.subscriber_id, NOW(), NOW()
                         FROM sendportal_skill_subscriber ss
+                        -- JOIN chứ không chép thẳng subscriber_id: pivot skill có 58 dòng
+                        -- mồ côi trỏ tới subscriber đã bị xoá, mà sendportal_tag_subscriber
+                        -- có khoá ngoại sang sendportal_subscribers nên insert sẽ vỡ.
+                        JOIN sendportal_subscribers s ON s.id = ss.subscriber_id
                         WHERE ss.skill_id = ?
                           AND NOT EXISTS (
                               SELECT 1 FROM sendportal_tag_subscriber ts
