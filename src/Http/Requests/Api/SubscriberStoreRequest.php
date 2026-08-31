@@ -21,6 +21,7 @@ class SubscriberStoreRequest extends FormRequest
             'skills' => ['nullable', 'string'],
             'industries' => ['nullable', 'string'],
             'level' => ['nullable', 'string'],
+            'audience' => ['nullable', 'string', 'in:candidate,employer,learner,talenthunter,affiliate,job-application'],
             'unsubscribed_at' => ['nullable', 'date'],
         ];
     }

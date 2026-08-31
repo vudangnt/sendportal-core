@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sendportal\Base\Services\Subscribers;
 
+use Sendportal\Base\Models\Tag;
 use Sendportal\Base\Support\SkillName;
 use Exception;
 use Illuminate\Support\Collection;
@@ -62,6 +63,43 @@ class ApiSubscriberService
             $dataArray['locations'] = array_merge($dataArray['locations'], $locations);
             unset($dataArray['location']);
         }
+
+        // Audience: producer nào chưa deploy thì payload không có trường này → AUD_UNKNOWN,
+        // KHÔNG đoán bừa. Báo cáo TagTaxonomyReport đếm số này theo nguồn để biết còn
+        // producer nào chưa xong (xem spec QĐ-3b).
+        $audienceMap = [
+            'candidate' => 'AUD_CANDIDATE',
+            'job-application' => 'AUD_CANDIDATE',
+            'employer' => 'AUD_EMPLOYER',
+            'learner' => 'AUD_LEARNER',
+            'talenthunter' => 'AUD_TALENTHUNTER',
+            'affiliate' => 'AUD_TALENTHUNTER',
+        ];
+        $audienceCode = $audienceMap[$dataArray['audience'] ?? ''] ?? 'AUD_UNKNOWN';
+        unset($dataArray['audience']);
+
+        // KHÔNG dùng firstOrCreate: `workspace_id` cố ý KHÔNG fillable (chống rò tenant),
+        // nên mass-assignment sẽ nuốt mất nó. Cả repo gán tenant key thẳng lên instance —
+        // xem BaseTenantRepository::executeSave().
+        $audienceTag = Tag::where('workspace_id', $workspaceId)
+            ->where('code', $audienceCode)
+            ->first();
+
+        if ($audienceTag === null) {
+            $audienceTag = new Tag();
+            $audienceTag->fill([
+                'name' => $audienceCode,
+                'code' => $audienceCode,
+                'dimension' => 'AUD',
+                'source' => 'ingest',
+            ]);
+            $audienceTag->workspace_id = $workspaceId;
+            $audienceTag->save();
+        }
+
+        // normalizeEntityIdentifiers() nhận lẫn id (số) và tên (chuỗi) — xem
+        // BaseSubscriberTenantRepository — nên trộn id vào mảng tên là hợp lệ.
+        $dataArray['tags'] = array_merge($dataArray['tags'] ?? [], [$audienceTag->id]);
 
         $existingSubscriber = $this->subscribers->findBy($workspaceId, 'email', $data['email']);
 
