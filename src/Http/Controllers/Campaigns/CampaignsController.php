@@ -20,6 +20,7 @@ use Sendportal\Base\Repositories\LocationTenantRepository;
 use Sendportal\Base\Repositories\SkillTenantRepository;
 use Sendportal\Base\Repositories\Subscribers\SubscriberTenantRepositoryInterface;
 use Sendportal\Base\Repositories\TagTenantRepository;
+use Sendportal\Base\Tags\TagTree;
 use Sendportal\Base\Repositories\TemplateTenantRepository;
 use Sendportal\Base\Services\Campaigns\CampaignStatisticsService;
 
@@ -33,6 +34,9 @@ class CampaignsController extends Controller
 
     /** @var TagTenantRepository */
     protected $tags;
+
+    /** @var TagTree */
+    protected $tagTree;
 
     /** @var EmailServiceTenantRepository */
     protected $emailServices;
@@ -53,6 +57,7 @@ class CampaignsController extends Controller
         CampaignTenantRepositoryInterface $campaigns,
         TemplateTenantRepository $templates,
         TagTenantRepository $tags,
+        TagTree $tagTree,
         LocationTenantRepository $locations,
         EmailServiceTenantRepository $emailServices,
         SubscriberTenantRepositoryInterface $subscribers,
@@ -64,6 +69,7 @@ class CampaignsController extends Controller
         $this->campaigns = $campaigns;
         $this->templates = $templates;
         $this->tags = $tags;
+        $this->tagTree = $tagTree;
         $this->locations = $locations;
         $this->emailServices = $emailServices;
         $this->subscribers = $subscribers;
@@ -223,29 +229,10 @@ class CampaignsController extends Controller
         }
 
         $workspaceId = Sendportal::currentWorkspaceId();
-        $tags = $this->tags->all($workspaceId, 'name')->toArray();
+        // Cùng lý do như TagsController::index — bước chọn người nhận dựng đúng cây này,
+        // và Task 1.10 đưa tag từ 787 lên ~3.039 nên vòng lặp lồng + N+1 không chịu nổi.
+        $tags = $this->tagTree->roots($workspaceId, 'child');
         $locations = $this->locations->all($workspaceId, 'name')->toArray();
-
-        foreach ($tags as $key => $tag) {
-            if ($tag['parent_id'] === 0) {
-                foreach ($tags as $child) {
-                    if ($child['parent_id'] === $tag['id']) {
-                        $tags[$key]['child'][] = $child;
-                    }
-                }
-                $tags[$key]['child_count'] = count($tags[$key]['child']??[]);
-                
-                // Calculate total active subscribers count including child tags
-                $tagModel = $this->tags->find($workspaceId, $tag['id']);
-                if ($tagModel) {
-                    $tags[$key]['active_subscribers_count'] = $tagModel->total_active_subscribers_count;
-                }
-            }
-        }
-        // Hàm lọc
-        $tags = array_filter($tags, function ($item) {
-            return $item['parent_id'] === 0;
-        });
 
 
         foreach ($locations as $key => $location) {
