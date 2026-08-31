@@ -6,6 +6,7 @@ namespace Sendportal\Base\Http\Controllers\Tags;
 
 use Exception;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
@@ -32,14 +33,22 @@ class TagsController extends Controller
     /**
      * @throws Exception
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        // Cây + số subscriber dựng trong TagTree: 2 query thay vì một query mỗi gốc,
-        // và gom con một lượt thay vì vòng lặp lồng. Đo local ở 2.977 tag:
-        // 18,8s/5.803 query -> 1,9s/2 query, kết quả đối chiếu giống hệt.
-        $tags = $this->tagTree->roots(Sendportal::currentWorkspaceId(), 'children');
+        $workspaceId = Sendportal::currentWorkspaceId();
 
-        return view('sendportal::tags.index', compact('tags'));
+        // Chỉ render nhóm đang xem. Đổ hết ~3.039 tag ra một trang thì HTML lên 5MB và ô
+        // tìm kiếm (lọc DOM phía client) phải lặp vài nghìn node mỗi phím gõ — spec §8.6.
+        $tagGroups = $this->tagTree->rootsByDimension($workspaceId, 'children');
+        $searchableCount = $this->tagTree->countSearchableRoots($workspaceId);
+
+        $dimensions = array_keys($tagGroups);
+        $dimension = (string) $request->query('dimension', $dimensions[0] ?? TagTree::DIMENSION_TIM_KIEM);
+
+        // Tab Kỹ năng không render sẵn — tra qua TagSearchController.
+        $tags = $dimension === TagTree::DIMENSION_TIM_KIEM ? [] : ($tagGroups[$dimension] ?? []);
+
+        return view('sendportal::tags.index', compact('tags', 'tagGroups', 'searchableCount', 'dimension'));
     }
 
     public function create(): View

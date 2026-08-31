@@ -94,6 +94,41 @@ final class TagTree
         return $nhom;
     }
 
+    /**
+     * Tag thuộc dimension nạp-qua-tìm-kiếm mà campaign ĐANG chọn.
+     *
+     * Tab đó không render sẵn, nên nếu không trả về đây thì mở lại một campaign đã chọn
+     * "Java" sẽ không có checkbox nào cho nó trong DOM — bấm Lưu là MẤT tag. Đây là mất
+     * dữ liệu thật, không phải chuyện hiển thị.
+     *
+     * @param array<int, int> $ids
+     * @return array<int, array{id:int,name:string,subscribers:int}>
+     */
+    public function searchableByIds(int $workspaceId, array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return DB::table('sendportal_tags as t')
+            ->where('t.workspace_id', $workspaceId)
+            ->where('t.dimension', self::DIMENSION_TIM_KIEM)
+            ->whereIn('t.id', $ids)
+            ->selectRaw('t.id, t.name')
+            ->selectRaw('(SELECT COUNT(DISTINCT ts.subscriber_id)
+                            FROM sendportal_tag_subscriber ts
+                            JOIN sendportal_subscribers s ON s.id = ts.subscriber_id
+                           WHERE ts.tag_id = t.id
+                             AND s.workspace_id = ?
+                             AND s.unsubscribed_at IS NULL) AS subscribers', [$workspaceId])
+            ->orderBy('t.name')
+            ->get()
+            ->map(static fn ($r) => ['id' => (int) $r->id, 'name' => (string) $r->name, 'subscribers' => (int) $r->subscribers])
+            ->all();
+    }
+
     /** Số tag gốc thuộc dimension nạp-qua-tìm-kiếm, để hiện lên nhãn tab. */
     public function countSearchableRoots(int $workspaceId): int
     {

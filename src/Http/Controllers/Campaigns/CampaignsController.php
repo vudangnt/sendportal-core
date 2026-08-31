@@ -231,7 +231,15 @@ class CampaignsController extends Controller
         $workspaceId = Sendportal::currentWorkspaceId();
         // Cùng lý do như TagsController::index — bước chọn người nhận dựng đúng cây này,
         // và Task 1.10 đưa tag từ 787 lên ~3.039 nên vòng lặp lồng + N+1 không chịu nổi.
-        $tags = $this->tagTree->roots($workspaceId, 'child');
+        // Chia tab theo dimension: sau Task 1.10 có ~2.252 tag SKILL, đổ hết vào một
+        // danh sách phẳng thì HTML lên 5MB và kỹ năng dìm chết ngành nghề (spec §8.6).
+        $tagGroups = $this->tagTree->rootsByDimension($workspaceId, 'child');
+        $searchableCount = $this->tagTree->countSearchableRoots($workspaceId);
+
+        // Tag đã chọn thuộc tab nạp-theo-yêu-cầu phải render sẵn, kẻo mở lại campaign
+        // rồi lưu là mất chúng.
+        $selectedTagIds = array_map('intval', (array) old('tags', $campaign->tags->modelKeys()));
+        $selectedSearchableTags = $this->tagTree->searchableByIds($workspaceId, $selectedTagIds);
         $locations = $this->locations->all($workspaceId, 'name')->toArray();
 
 
@@ -265,7 +273,7 @@ class CampaignsController extends Controller
         // Load levels
         $levels = $this->levels->all($workspaceId, 'name')->toArray();
 
-        return view('sendportal::campaigns.preview', compact('campaign', 'tags', 'locations', 'skills', 'industries', 'levels', 'subscriberCount'));
+        return view('sendportal::campaigns.preview', compact('campaign', 'tagGroups', 'searchableCount', 'selectedTagIds', 'selectedSearchableTags', 'locations', 'skills', 'industries', 'levels', 'subscriberCount'));
     }
 
     /**
