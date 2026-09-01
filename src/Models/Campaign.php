@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Sendportal\Base\Segments\SegmentResolver;
+use Sendportal\Base\Segments\SegmentRule;
 
 /**
  * @property int $id
@@ -201,6 +203,18 @@ class Campaign extends BaseModel
 
     public function getActiveSubscriberCountAttribute(): int
     {
+        // Chế độ segment đếm bằng chính engine sẽ gửi, không thể dùng phép hợp bên dưới:
+        // hợp cho ra số lớn hơn thật, làm preview sai và exceedsQuota chặn nhầm.
+        if (!$this->send_to_all && $this->targeting_mode === 'segment') {
+            $rule = SegmentRule::fromTags($this->tags);
+
+            if ($rule->isEmpty()) {
+                return 0;
+            }
+
+            return app(SegmentResolver::class)->count($this->workspace_id, $rule);
+        }
+
         return Subscriber::where('workspace_id', $this->workspace_id)
             ->whereNull('unsubscribed_at')
             ->when(!$this->send_to_all, function (Builder $query) {

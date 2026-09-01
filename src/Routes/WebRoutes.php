@@ -54,6 +54,8 @@ class WebRoutes
                 $appRouter->get('/', 'DashboardController@index')->name('dashboard');
 
                 // Campaigns.
+                $appRouter->post('campaigns/recipient-count', 'Campaigns\CampaignRecipientCountController')
+                    ->name('campaigns.recipientCount');
                 $appRouter->resource('campaigns', 'Campaigns\CampaignsController')->except(['show', 'destroy']);
                 $appRouter->name('campaigns.')->prefix('campaigns')->namespace('Campaigns')->group(static function (
                     Router $campaignRouter
