@@ -42,10 +42,19 @@ class SegmentRuleTest extends TestCase
     {
         // 10 tag trên prod có dimension NULL. Chúng phải thành MỘT nhóm riêng,
         // không được biến mất — nếu mất thì rule dính tab "Khác" không khớp ai.
+        // Dùng literal '_KHAC' (không phải hằng số) vì SQL resolver hard-code
+        // đúng chuỗi này trong COALESCE — nếu ai đổi giá trị hằng số, test này
+        // phải đỏ để lộ ra, không được xanh ăn theo hằng số đã đổi.
         $rule = SegmentRule::fromTags([$this->tag(1, 'CAT'), $this->tag(2, null), $this->tag(3, '')]);
 
-        self::assertSame(['CAT' => [1], SegmentRule::NHOM_KHAC => [2, 3]], $rule->groups());
+        self::assertSame(['CAT' => [1], '_KHAC' => [2, 3]], $rule->groups());
         self::assertSame(2, $rule->dimensionCount());
+    }
+
+    /** @test */
+    public function it_defines_nhom_khac_as_the_literal_sql_side_hard_codes(): void
+    {
+        self::assertSame('_KHAC', SegmentRule::NHOM_KHAC);
     }
 
     /** @test */
@@ -55,6 +64,7 @@ class SegmentRuleTest extends TestCase
 
         self::assertTrue($rule->isEmpty());
         self::assertSame(0, $rule->dimensionCount());
+        self::assertSame([], $rule->tagIds());
     }
 
     /** @test */
@@ -63,5 +73,17 @@ class SegmentRuleTest extends TestCase
         $rule = SegmentRule::fromTags([$this->tag(1, 'CAT'), $this->tag(1, 'CAT')]);
 
         self::assertSame(['CAT' => [1]], $rule->groups());
+    }
+
+    /** @test */
+    public function it_keeps_a_tag_id_in_only_one_group(): void
+    {
+        // Cùng id ở hai dimension sẽ làm dimensionCount vượt số tag thật
+        // -> COUNT(DISTINCT) không bao giờ đạt, rule không khớp một ai.
+        $rule = SegmentRule::fromTags([$this->tag(30, 'CAT'), $this->tag(30, 'LOC')]);
+
+        self::assertSame(['CAT' => [30]], $rule->groups());
+        self::assertSame(1, $rule->dimensionCount());
+        self::assertSame([30], $rule->tagIds());
     }
 }
