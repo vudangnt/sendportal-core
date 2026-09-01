@@ -47,8 +47,9 @@ class ApiSubscriberService
             if (!isset($dataArray['tags']) || !is_array($dataArray['tags'])) {
                 $dataArray['tags'] = [];
             }
-            $values = array_map('trim', explode(',', $dataArray['category']));
-            $values = array_filter($values, fn($v) => !empty($v));
+            // Tôn trọng ngoặc như nhánh skill: explode(',') trần đã băm
+            // "Testing (QA, Tester)" thành hai tag rác trên prod.
+            $values = SkillName::splitList($dataArray['category']);
             $dataArray['tags'] = array_merge($dataArray['tags'], $values);
             unset($dataArray['category']);
         }
@@ -58,8 +59,7 @@ class ApiSubscriberService
             if (!isset($dataArray['locations']) || !is_array($dataArray['locations'])) {
                 $dataArray['locations'] = [];
             }
-            $locations = array_map('trim', explode(',', $dataArray['location']));
-            $locations = array_filter($locations, fn($loc) => !empty($loc));
+            $locations = SkillName::splitList($dataArray['location']);
             $dataArray['locations'] = array_merge($dataArray['locations'], $locations);
             unset($dataArray['location']);
         }
