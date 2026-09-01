@@ -1,0 +1,67 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Segments;
+
+use PHPUnit\Framework\TestCase;
+use Sendportal\Base\Segments\SegmentRule;
+
+class SegmentRuleTest extends TestCase
+{
+    /** Tag giả — SegmentRule chỉ đọc id và dimension nên không cần Eloquent. */
+    private function tag(int $id, ?string $dimension): object
+    {
+        return (object) ['id' => $id, 'dimension' => $dimension];
+    }
+
+    /** @test */
+    public function it_groups_tag_ids_by_dimension(): void
+    {
+        $rule = SegmentRule::fromTags([
+            $this->tag(1, 'CAT'), $this->tag(2, 'CAT'), $this->tag(3, 'LOC'),
+        ]);
+
+        self::assertSame(['CAT' => [1, 2], 'LOC' => [3]], $rule->groups());
+    }
+
+    /** @test */
+    public function it_counts_dimensions_not_tags(): void
+    {
+        // 3 tag nhưng 2 dimension -> HAVING phải so với 2.
+        $rule = SegmentRule::fromTags([
+            $this->tag(1, 'CAT'), $this->tag(2, 'CAT'), $this->tag(3, 'LOC'),
+        ]);
+
+        self::assertSame(2, $rule->dimensionCount());
+        self::assertSame([1, 2, 3], $rule->tagIds());
+    }
+
+    /** @test */
+    public function it_puts_tags_without_a_dimension_in_their_own_group(): void
+    {
+        // 10 tag trên prod có dimension NULL. Chúng phải thành MỘT nhóm riêng,
+        // không được biến mất — nếu mất thì rule dính tab "Khác" không khớp ai.
+        $rule = SegmentRule::fromTags([$this->tag(1, 'CAT'), $this->tag(2, null), $this->tag(3, '')]);
+
+        self::assertSame(['CAT' => [1], SegmentRule::NHOM_KHAC => [2, 3]], $rule->groups());
+        self::assertSame(2, $rule->dimensionCount());
+    }
+
+    /** @test */
+    public function it_is_empty_when_no_tags_are_selected(): void
+    {
+        $rule = SegmentRule::fromTags([]);
+
+        self::assertTrue($rule->isEmpty());
+        self::assertSame(0, $rule->dimensionCount());
+    }
+
+    /** @test */
+    public function it_drops_duplicate_tag_ids(): void
+    {
+        $rule = SegmentRule::fromTags([$this->tag(1, 'CAT'), $this->tag(1, 'CAT')]);
+
+        self::assertSame(['CAT' => [1]], $rule->groups());
+    }
+}
