@@ -13,8 +13,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use Sendportal\Base\Segments\SegmentResolver;
 use Sendportal\Base\Segments\SegmentRule;
+use Sendportal\Base\Segments\SegmentRuleMismatchException;
 
 /**
  * @property int $id
@@ -212,7 +214,17 @@ class Campaign extends BaseModel
                 return 0;
             }
 
-            return app(SegmentResolver::class)->count($this->workspace_id, $rule);
+            try {
+                return app(SegmentResolver::class)->count($this->workspace_id, $rule);
+            } catch (SegmentRuleMismatchException $e) {
+                // Accessor này nuôi exceedsQuota() và cả màn hình huỷ campaign — tức đúng
+                // chỗ người vận hành vào để gỡ một campaign hỏng. Ném ở đây là chặn luôn
+                // đường cứu. Trả 0 và ghi log; đường gửi đã có chốt riêng huỷ campaign.
+                Log::error('- Không đếm được người nhận segment, trả 0. campaign_id=' . $this->id
+                    . ' loi=' . $e->getMessage());
+
+                return 0;
+            }
         }
 
         return Subscriber::where('workspace_id', $this->workspace_id)

@@ -7,11 +7,13 @@ namespace Sendportal\Base\Http\Controllers\Campaigns;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Sendportal\Base\Facades\Sendportal;
 use Sendportal\Base\Http\Controllers\Controller;
 use Sendportal\Base\Segments\EmptySegmentRuleException;
 use Sendportal\Base\Segments\SegmentResolver;
 use Sendportal\Base\Segments\SegmentRule;
+use Sendportal\Base\Segments\SegmentRuleMismatchException;
 
 /**
  * Đếm người nhận cho bộ tag đang tick, để preview hiện số thật trước khi gửi.
@@ -40,6 +42,19 @@ class CampaignRecipientCountController extends Controller
             $count = $resolver->count($workspaceId, $rule);
         } catch (EmptySegmentRuleException) {
             return response()->json(['count' => 0, 'rule' => '', 'empty' => true]);
+        } catch (SegmentRuleMismatchException $e) {
+            // Khác accessor: ở đây marketer đang đứng trước màn hình. Trả 0 trần là
+            // đưa họ một con số trông hợp lệ rồi để họ bấm Gửi — nói thẳng là chưa
+            // đếm được thì hơn.
+            Log::error('- Endpoint đếm người nhận gặp rule lệch. workspace_id=' . $workspaceId
+                . ' loi=' . $e->getMessage());
+
+            return response()->json([
+                'count' => 0,
+                'rule' => '',
+                'empty' => true,
+                'error' => __('Bộ tag đang chọn có vấn đề, chưa đếm được. Báo kỹ thuật.'),
+            ]);
         }
 
         return response()->json([
