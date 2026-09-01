@@ -32,6 +32,7 @@ class BackfillTagCodes extends Command
                             {--workspace= : workspace_id cần xử lý}
                             {--map= : đường dẫn file JSON {root_tag_id: dimension}}
                             {--chunk=500 : kích thước lô}
+                            {--remap : sinh lại mã cho cả tag ĐÃ có mã, khi map đổi phân loại}
                             {--dry-run : chỉ in ra, không ghi}';
 
     protected $description = 'Sinh code/dimension cho sendportal_tags theo map gốc cây';
@@ -70,8 +71,11 @@ class BackfillTagCodes extends Command
         $ngoaiMap = [];
         $trung = [];
 
+        // Mặc định chỉ đụng tag chưa có mã. --remap mở cho cả tag đã có mã, dùng khi
+        // bổ sung map: ~218 ngành nghề là gốc PHẲNG (không con) nên lần backfill đầu
+        // không thừa kế được dimension nào và rơi hết vào LIST.
         Tag::where('workspace_id', $workspaceId)
-            ->whereNull('code')
+            ->when(! $this->option('remap'), fn ($q) => $q->whereNull('code'))
             ->chunkById((int) $this->option('chunk'), function ($tags) use (
                 $resolver, $workspaceId, $map, $dryRun, &$daGan, &$ngoaiMap, &$trung
             ) {
@@ -80,6 +84,14 @@ class BackfillTagCodes extends Command
 
                     // Gốc không khai trong map → LIST (thùng chứa vận hành). Ghi lại hết
                     // để người vận hành soi, vì đây là chỗ duy nhất lệnh tự quyết.
+                    // Chế độ remap CHỈ áp lại map, không phân loại lại tất cả: tag đã có
+                    // dimension do lệnh khác đặt (SKILL từ import-skills, AUD từ ingest)
+                    // mà không nằm trong map thì phải để nguyên. Bỏ chốt này, một lần
+                    // chạy sẽ đẩy 2.251 tag SKILL và 3 tag AUD về LIST.
+                    if ($this->option('remap') && $tag->code !== null && ! isset($map[(string) $rootId])) {
+                        continue;
+                    }
+
                     $dimension = $map[(string) $rootId] ?? 'LIST';
                     if (! isset($map[(string) $rootId])) {
                         $ngoaiMap[] = "{$tag->name} (id={$tag->id}, root={$rootId}) → LIST";
@@ -88,6 +100,11 @@ class BackfillTagCodes extends Command
                     $code = $resolver->resolve($workspaceId, $dimension, (string) $tag->name);
                     if ($code === null) {
                         continue; // resolver đã ghi nhận, in ở cuối
+                    }
+
+                    // Chạy lại mà mã không đổi thì không ghi — giữ lệnh idempotent.
+                    if ($tag->code === $code && $tag->dimension === $dimension) {
+                        continue;
                     }
 
                     if ($dryRun) {
