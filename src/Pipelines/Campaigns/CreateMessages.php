@@ -8,6 +8,8 @@ use Sendportal\Base\Models\Campaign;
 use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\Subscriber;
 use Sendportal\Base\Models\Tag;
+use Sendportal\Base\Segments\SegmentResolver;
+use Sendportal\Base\Segments\SegmentRule;
 
 class CreateMessages
 {
@@ -29,6 +31,18 @@ class CreateMessages
      */
     public function handle(Campaign $campaign, $next)
     {
+        // Chỉ nhánh segment rẽ ra sớm. Mọi thứ phía dưới giữ NGUYÊN XI thứ tự cũ —
+        // đặc biệt là vòng nạp locationIds phải chạy TRƯỚC cả send_to_all lẫn handleTags.
+        // Đẩy nó xuống nhánh else là đổi hành vi: handleAllSubscribers cũng đi qua
+        // canSendToSubscriber, nên campaign send_to_all CÓ chọn location hôm nay vẫn
+        // đang bị lọc location; bỏ vòng này là tệp nhận của nó phình ra.
+        // (Prod hôm nay có 0 campaign send_to_all, nhưng đừng gài mìn cho campaign sau.)
+        if (!$campaign->send_to_all && $campaign->targeting_mode === 'segment') {
+            $this->handleSegment($campaign);
+
+            return $next($campaign);
+        }
+
         foreach ($campaign->locations as $location) {
             $this->locationIds[] = $location->id;
         }
@@ -40,6 +54,38 @@ class CreateMessages
         }
 
         return $next($campaign);
+    }
+
+    /**
+     * Nhắm theo rule: OR trong dimension, AND giữa dimension.
+     *
+     * KHÔNG nạp $this->locationIds — ở chế độ này location là tag LOC_ bình thường nằm
+     * trong rule, nên khối array_intersect trong canSendToSubscriber tự bỏ qua
+     * (nó đã có sẵn guard `if (!empty($this->locationIds))`).
+     */
+    protected function handleSegment(Campaign $campaign): void
+    {
+        $rule = SegmentRule::fromTags($campaign->tags);
+
+        if ($rule->isEmpty()) {
+            Log::warning('- Campaign segment rỗng, không gửi cho ai. campaign_id=' . $campaign->id);
+
+            return;
+        }
+
+        $resolver = app(SegmentResolver::class);
+
+        // PHẢI dùng chunkById, KHÔNG dùng chunk(): chunk() phân trang bằng LIMIT/OFFSET,
+        // ai đó huỷ đăng ký giữa đợt gửi là offset trượt và BỎ SÓT người nhận, im lặng.
+        // chunkById đúng ở đây vì ts.subscriber_id chính là khoá GROUP BY, nên lọc trước
+        // khi gom nhóm tương đương lọc sau. Tham số mặc định KHÔNG chạy được: cả ba bảng
+        // join đều có cột `id` -> lỗi 1052 "Column 'id' in order clause is ambiguous".
+        $resolver->query($campaign->workspace_id, $rule)
+            ->chunkById(1000, function ($rows) use ($campaign) {
+                $ids = array_map(static fn ($r) => (int) $r->subscriber_id, $rows->all());
+                $subscribers = Subscriber::whereIn('id', $ids)->get();
+                $this->dispatchToSubscriber($campaign, $subscribers);
+            }, 'ts.subscriber_id', 'subscriber_id');
     }
 
     /**
