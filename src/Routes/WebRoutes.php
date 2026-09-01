@@ -55,6 +55,7 @@ class WebRoutes
 
                 // Campaigns.
                 $appRouter->post('campaigns/recipient-count', 'Campaigns\CampaignRecipientCountController')
+                    ->middleware('throttle:30,1')
                     ->name('campaigns.recipientCount');
                 $appRouter->resource('campaigns', 'Campaigns\CampaignsController')->except(['show', 'destroy']);
                 $appRouter->name('campaigns.')->prefix('campaigns')->namespace('Campaigns')->group(static function (

@@ -22,6 +22,14 @@ class CampaignRecipientCountController extends Controller
 {
     public function __invoke(Request $request, SegmentResolver $resolver): JsonResponse
     {
+        // Chặn ba thứ cùng lúc: quét cả bảng pivot 315k dòng bằng cách gửi rất nhiều
+        // tag, whereIn phình ra hàng chục nghìn placeholder, và `tags[0][]=5` khiến
+        // intval(array) trả 1 rồi âm thầm đếm theo tag id 1.
+        $request->validate([
+            'tags' => 'array|max:200',
+            'tags.*' => 'integer',
+        ]);
+
         $workspaceId = Sendportal::currentWorkspaceId();
         $tagIds = array_filter(array_map('intval', (array) $request->input('tags', [])));
 

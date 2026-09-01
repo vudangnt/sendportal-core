@@ -207,7 +207,13 @@ class Campaign extends BaseModel
     {
         // Chế độ segment đếm bằng chính engine sẽ gửi, không thể dùng phép hợp bên dưới:
         // hợp cho ra số lớn hơn thật, làm preview sai và exceedsQuota chặn nhầm.
-        if (!$this->send_to_all && $this->targeting_mode === 'segment') {
+        //
+        // Điều kiện phải TRÙNG KHỚP với CreateMessages::handle(), nơi chỉ xét
+        // targeting_mode. Thêm `!send_to_all` vào đây là mở đường cho đúng ca tệ nhất:
+        // chọn "All subscribers" trên campaign segment thì accessor rơi xuống nhánh
+        // legacy và báo ~80.000 người — con số sẽ KHÔNG bao giờ được gửi, vì pipeline
+        // ném SegmentTargetingConflictException và huỷ campaign.
+        if ($this->targeting_mode === 'segment') {
             $rule = SegmentRule::fromTags($this->tags);
 
             if ($rule->isEmpty()) {
@@ -217,9 +223,12 @@ class Campaign extends BaseModel
             try {
                 return app(SegmentResolver::class)->count($this->workspace_id, $rule);
             } catch (SegmentRuleMismatchException $e) {
-                // Accessor này nuôi exceedsQuota() và cả màn hình huỷ campaign — tức đúng
-                // chỗ người vận hành vào để gỡ một campaign hỏng. Ném ở đây là chặn luôn
-                // đường cứu. Trả 0 và ghi log; đường gửi đã có chốt riêng huỷ campaign.
+                // Accessor này nuôi exceedsQuota() và CampaignCancellationController.
+                // Trả 0 để nó KHÔNG NÉM — chỉ vậy thôi, đừng đọc thành "đã an toàn":
+                // với campaign save_as_draft đã sinh sẵn N>0 message, allDraftsCreated()
+                // so 0 === N ra false và màn huỷ vẫn chặn. 0 chỉ đổi lỗi 500 thành một
+                // kiểu chặn khác, chưa gỡ được ca đó. Đường gửi thì đã có chốt riêng tự
+                // huỷ campaign.
                 Log::error('- Không đếm được người nhận segment, trả 0. campaign_id=' . $this->id
                     . ' loi=' . $e->getMessage());
 
