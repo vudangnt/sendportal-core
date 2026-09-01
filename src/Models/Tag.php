@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+use Sendportal\Base\Tags\Dimension;
 
 /**
  * @property int $id
@@ -48,6 +50,35 @@ class Tag extends BaseModel
     protected $withCount = [
         'subscribers','activeSubscribers'
     ];
+
+    /**
+     * Segment engine so số dimension đếm ở PHP với số đếm ở SQL. Hai phép chuẩn hoá đó
+     * KHÔNG thể trùng nhau nếu cột chứa rác: PHP trim() strip \n\t\r còn SQL TRIM() chỉ
+     * strip dấu cách; PHP strtoupper chỉ hiểu ASCII còn SQL UPPER hiểu Unicode dưới
+     * collation utf8mb4_unicode_ci ('CAT' và 'CÁT' là một với SQL, là hai với PHP).
+     *
+     * Chốt ở model chứ không chỉ ở FormRequest, vì các lệnh import/backfill ghi thẳng vào
+     * đây và không đi qua request nào. Ném lỗi chứ không im lặng sửa: một dimension lạ
+     * nghĩa là gọi sai chỗ, và nuốt nó đi thì lỗi lộ ra ở tận lúc gửi campaign.
+     */
+    public function setDimensionAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['dimension'] = null;
+
+            return;
+        }
+
+        $chuanHoa = strtoupper(trim((string) $value));
+
+        if (!in_array($chuanHoa, Dimension::ALL, true)) {
+            throw new InvalidArgumentException(
+                'Dimension không hợp lệ: "' . $value . '". Phải nằm trong Dimension::ALL.'
+            );
+        }
+
+        $this->attributes['dimension'] = $chuanHoa;
+    }
 
     public function campaigns(): BelongsToMany
     {
