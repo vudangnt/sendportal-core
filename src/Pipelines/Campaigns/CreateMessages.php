@@ -5,11 +5,16 @@ namespace Sendportal\Base\Pipelines\Campaigns;
 use Illuminate\Support\Facades\Log;
 use Sendportal\Base\Events\MessageDispatchEvent;
 use Sendportal\Base\Models\Campaign;
+use Sendportal\Base\Models\CampaignStatus;
 use Sendportal\Base\Models\Message;
 use Sendportal\Base\Models\Subscriber;
 use Sendportal\Base\Models\Tag;
+use Sendportal\Base\Segments\EmptySegmentRuleException;
+use Sendportal\Base\Segments\SegmentLocationConflictException;
 use Sendportal\Base\Segments\SegmentResolver;
 use Sendportal\Base\Segments\SegmentRule;
+use Sendportal\Base\Segments\SegmentRuleMismatchException;
+use Sendportal\Base\Segments\SegmentTargetingConflictException;
 
 class CreateMessages
 {
@@ -31,14 +36,49 @@ class CreateMessages
      */
     public function handle(Campaign $campaign, $next)
     {
+        // $sentItems/$locationIds là thuộc tính instance, mà CampaignDispatchCommand lặp
+        // nhiều campaign trong MỘT tiến trình. Hôm nay Pipeline::carry() make() lại pipe
+        // mỗi lần chạy nên không rò, nhưng reset cho rẻ và khỏi phụ thuộc cách wiring.
+        $this->sentItems = [];
+        $this->locationIds = [];
+
         // Chỉ nhánh segment rẽ ra sớm. Mọi thứ phía dưới giữ NGUYÊN XI thứ tự cũ —
         // đặc biệt là vòng nạp locationIds phải chạy TRƯỚC cả send_to_all lẫn handleTags.
         // Đẩy nó xuống nhánh else là đổi hành vi: handleAllSubscribers cũng đi qua
         // canSendToSubscriber, nên campaign send_to_all CÓ chọn location hôm nay vẫn
         // đang bị lọc location; bỏ vòng này là tệp nhận của nó phình ra.
         // (Prod hôm nay có 0 campaign send_to_all, nhưng đừng gài mìn cho campaign sau.)
-        if (!$campaign->send_to_all && $campaign->targeting_mode === 'segment') {
-            $this->handleSegment($campaign);
+        if ($campaign->targeting_mode === 'segment') {
+            try {
+                // send_to_all + segment là MÂU THUẪN, không phải thứ tự ưu tiên. Để
+                // send_to_all thắng ngầm là gửi cả ~80.000 người và vứt rule đi mà không
+                // log một dòng — CampaignDispatchController::send ghi đè send_to_all từ
+                // dropdown ở MỖI lần dispatch.
+                if ($campaign->send_to_all) {
+                    throw new SegmentTargetingConflictException(
+                        'Campaign ' . $campaign->id . ' vừa bật segment vừa send_to_all. '
+                        . 'Chọn một trong hai — đừng để nó gửi cho toàn bộ danh sách.'
+                    );
+                }
+
+                $this->handleSegment($campaign);
+            } catch (SegmentTargetingConflictException
+                   | SegmentLocationConflictException
+                   | EmptySegmentRuleException
+                   | SegmentRuleMismatchException $e) {
+                Log::error('- Campaign segment hỏng, huỷ campaign. campaign_id=' . $campaign->id
+                    . ' loi=' . $e->getMessage());
+
+                $campaign->status_id = CampaignStatus::STATUS_CANCELLED;
+                $campaign->save();
+
+                // KHÔNG gọi $next: chạy tiếp là CompleteCampaign ghi đè thành SENT, campaign
+                // hỏng lại trông như gửi xong. Cũng KHÔNG ném tiếp: ném thì
+                // CampaignDispatchService chỉ log rồi nuốt, campaign nằm lại ở SENDING mà
+                // getQueuedCampaigns() chỉ quét QUEUED và re-send đòi DRAFT — kẹt vĩnh viễn.
+                // Dừng hẳn tại đây, để lại CANCELLED cho người vận hành nhìn thấy.
+                return $campaign;
+            }
 
             return $next($campaign);
         }
@@ -59,20 +99,23 @@ class CreateMessages
     /**
      * Nhắm theo rule: OR trong dimension, AND giữa dimension.
      *
-     * KHÔNG nạp $this->locationIds — ở chế độ này location là tag LOC_ bình thường nằm
-     * trong rule, nên khối array_intersect trong canSendToSubscriber tự bỏ qua
-     * (nó đã có sẵn guard `if (!empty($this->locationIds))`).
+     * KHÔNG nạp $this->locationIds — ở chế độ này location phải là tag `LOC_` nằm trong
+     * rule. Chốt ngay dưới đây bảo đảm điều đó, chứ không âm thầm bỏ ràng buộc location.
+     *
+     * Rule rỗng KHÔNG bắt ở đây: SegmentResolver::query() đã ném EmptySegmentRuleException.
+     * Mọi lỗi segment đều để nổi lên handle(), nơi có MỘT chỗ xử lý duy nhất — bắt rồi
+     * return ở đây sẽ cho campaign về SENT với 0 message, trông như gửi thành công.
      */
     protected function handleSegment(Campaign $campaign): void
     {
-        $rule = SegmentRule::fromTags($campaign->tags);
-
-        if ($rule->isEmpty()) {
-            Log::warning('- Campaign segment rỗng, không gửi cho ai. campaign_id=' . $campaign->id);
-
-            return;
+        if ($campaign->locations()->exists()) {
+            throw new SegmentLocationConflictException(
+                'Campaign ' . $campaign->id . ' còn location kiểu cũ nhưng đang bật segment. '
+                . 'Hãy chọn tag LOC_ thay cho location rồi gửi lại.'
+            );
         }
 
+        $rule = SegmentRule::fromTags($campaign->tags);
         $resolver = app(SegmentResolver::class);
 
         // PHẢI dùng chunkById, KHÔNG dùng chunk(): chunk() phân trang bằng LIMIT/OFFSET,
@@ -83,7 +126,15 @@ class CreateMessages
         $resolver->query($campaign->workspace_id, $rule)
             ->chunkById(1000, function ($rows) use ($campaign) {
                 $ids = array_map(static fn ($r) => (int) $r->subscriber_id, $rows->all());
-                $subscribers = Subscriber::whereIn('id', $ids)->get();
+
+                // Lọc lại unsubscribed_at: resolver khẳng định điều đó ở câu truy vấn TRƯỚC,
+                // còn model nạp ở câu SAU — ai huỷ đăng ký xen giữa hai câu sẽ vẫn bị gửi.
+                // handleTag/handleAllSubscribers không có khe này vì chúng lọc và nạp cùng câu.
+                $subscribers = Subscriber::where('workspace_id', $campaign->workspace_id)
+                    ->whereNull('unsubscribed_at')
+                    ->whereIn('id', $ids)
+                    ->get();
+
                 $this->dispatchToSubscriber($campaign, $subscribers);
             }, 'ts.subscriber_id', 'subscriber_id');
     }

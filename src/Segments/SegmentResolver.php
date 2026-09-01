@@ -28,6 +28,9 @@ class SegmentResolver
      * là lệch offset và BỎ SÓT người nhận, im lặng. chunkById đúng ở đây vì
      * ts.subscriber_id chính là khoá GROUP BY. Tham số mặc định KHÔNG chạy được:
      * ba bảng join đều có cột `id` -> lỗi 1052 "Column 'id' in order clause is ambiguous".
+     *
+     * ĐỪNG thêm orderBy vào query này: chunkById chỉ gỡ order trên đúng cột phân trang,
+     * order lạ sẽ sống sót và làm trang sau bỏ sót người nhận.
      */
     public function query(int $workspaceId, SegmentRule $rule): Builder
     {
