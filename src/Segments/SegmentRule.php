@@ -12,13 +12,17 @@ namespace Sendportal\Base\Segments;
  *
  * Không chạm DB, không phụ thuộc container — để test được không cần harness.
  *
- * HỢP ĐỒNG CHUẨN HOÁ DIMENSION — bên SQL (bộ resolver sau) PHẢI khớp Y HỆT:
+ * CHUẨN HOÁ DIMENSION — bên SQL (bộ resolver sau) dùng:
  *   PHP:  strtoupper(trim((string) ($tag->dimension ?? ''))), rỗng => NHOM_KHAC
  *   SQL:  COALESCE(NULLIF(TRIM(UPPER(t.dimension)), ''), '_KHAC')
- * Lệch chuẩn hoá (vd PHP giữ NULL và '' là 2 nhóm trong khi SQL DISTINCT gộp
- * làm 1; hoặc PHP phân biệt hoa/thường trong khi collation MySQL mặc định
- * không) làm COUNT(DISTINCT ...) trong HAVING không bao giờ khớp
- * dimensionCount() — rule âm thầm chọn ZERO người nhận.
+ * Điều kiện: `dimension` chỉ nhận giá trị trong Dimension::ALL — chữ HOA ASCII, không
+ * khoảng trắng, không dấu. Trong phạm vi đó, chuẩn hoá PHP và SQL cho cùng kết quả.
+ * NGOÀI phạm vi đó chúng LỆCH nhau và rule âm thầm chọn sai người:
+ *   'CAT' vs 'CÁT'   -> PHP 2 nhóm, SQL 1 distinct  -> không khớp ai
+ *   "CAT\n" vs 'CAT' -> PHP 1 nhóm, SQL 2 distinct  -> mất bớt người
+ * strtoupper là ASCII-only, còn UPPER của MySQL hiểu Unicode; trim() của PHP strip
+ * \n\t\r còn TRIM() của SQL chỉ strip dấu cách. Chốt chặn đúng chỗ là validate lúc
+ * GHI tag, không phải lúc đọc.
  */
 final class SegmentRule
 {
@@ -67,7 +71,7 @@ final class SegmentRule
     /** @return int[] */
     public function tagIds(): array
     {
-        return array_values(array_unique(array_merge([], ...array_values($this->groups))));
+        return array_merge([], ...array_values($this->groups));
     }
 
     /** Số dimension — đây mới là con số cho HAVING, KHÔNG phải số tag. */

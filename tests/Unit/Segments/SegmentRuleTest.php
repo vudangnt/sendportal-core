@@ -42,9 +42,10 @@ class SegmentRuleTest extends TestCase
     {
         // 10 tag trên prod có dimension NULL. Chúng phải thành MỘT nhóm riêng,
         // không được biến mất — nếu mất thì rule dính tab "Khác" không khớp ai.
-        // Dùng literal '_KHAC' (không phải hằng số) vì SQL resolver hard-code
-        // đúng chuỗi này trong COALESCE — nếu ai đổi giá trị hằng số, test này
-        // phải đỏ để lộ ra, không được xanh ăn theo hằng số đã đổi.
+        // Dùng literal '_KHAC' (không phải hằng số) vì giá trị này là một phần
+        // hợp đồng đã tài liệu hoá — SQL viết tay cho báo cáo có thể hard-code
+        // thẳng chuỗi này. Nếu ai đổi giá trị hằng số mà quên cập nhật chỗ đó,
+        // test này phải đỏ để lộ ra, không được xanh ăn theo hằng số đã đổi.
         $rule = SegmentRule::fromTags([$this->tag(1, 'CAT'), $this->tag(2, null), $this->tag(3, '')]);
 
         self::assertSame(['CAT' => [1], '_KHAC' => [2, 3]], $rule->groups());
@@ -52,7 +53,7 @@ class SegmentRuleTest extends TestCase
     }
 
     /** @test */
-    public function it_defines_nhom_khac_as_the_literal_sql_side_hard_codes(): void
+    public function it_defines_nhom_khac_as_the_documented_literal_value(): void
     {
         self::assertSame('_KHAC', SegmentRule::NHOM_KHAC);
     }
@@ -85,5 +86,26 @@ class SegmentRuleTest extends TestCase
         self::assertSame(['CAT' => [30]], $rule->groups());
         self::assertSame(1, $rule->dimensionCount());
         self::assertSame([30], $rule->tagIds());
+    }
+
+    /** @test */
+    public function it_normalises_case_and_padding_so_php_agrees_with_sql(): void
+    {
+        // MySQL gộp 'cat' với 'CAT' (collation không phân biệt hoa thường) và TRIM
+        // khoảng trắng. PHP phải gộp y hệt, nếu không COUNT(DISTINCT) bên SQL và
+        // dimensionCount() bên PHP lệch nhau -> HAVING không bao giờ đạt -> rule
+        // âm thầm không khớp một ai.
+        $rule = SegmentRule::fromTags([$this->tag(1, 'cat'), $this->tag(2, ' CAT ')]);
+
+        self::assertSame(['CAT' => [1, 2]], $rule->groups());
+        self::assertSame(1, $rule->dimensionCount());
+    }
+
+    /** @test */
+    public function it_treats_a_whitespace_only_dimension_as_no_dimension(): void
+    {
+        $rule = SegmentRule::fromTags([$this->tag(1, '   ')]);
+
+        self::assertSame(['_KHAC' => [1]], $rule->groups());
     }
 }
