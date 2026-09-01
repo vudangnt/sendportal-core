@@ -62,7 +62,11 @@ class TagsController extends Controller
      */
     public function store(TagStoreRequest $request): RedirectResponse
     {
-        $this->tagRepository->store(Sendportal::currentWorkspaceId(), $request->all());
+        // CHỈ nhận field form thật sự sở hữu. `code` và `source` là dữ liệu dẫn xuất do
+        // lệnh backfill/import sinh ra; để `all()` đi qua thì một POST có thể đè `code` —
+        // khoá UNIQUE mà segment engine dựa vào.
+        $this->tagRepository->store(Sendportal::currentWorkspaceId(),
+            $request->only(['name', 'parent_id', 'dimension']));
         return redirect()->route('sendportal.tags.index');
     }
 
@@ -81,7 +85,8 @@ class TagsController extends Controller
      */
     public function update(int $id, TagUpdateRequest $request): RedirectResponse
     {
-        $this->tagRepository->update(Sendportal::currentWorkspaceId(), $id, $request->all());
+        $this->tagRepository->update(Sendportal::currentWorkspaceId(), $id,
+            $request->only(['name', 'parent_id', 'dimension']));
 
         return redirect()->route('sendportal.tags.index');
     }
