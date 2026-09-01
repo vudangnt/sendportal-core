@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Sendportal\Base\Segments\SegmentResolver;
 use Sendportal\Base\Segments\SegmentRule;
 use Sendportal\Base\Segments\SegmentRuleMismatchException;
@@ -105,6 +106,9 @@ class Campaign extends BaseModel
         'save_as_draft' => 'bool',
         'send_to_all' => 'bool',
     ];
+
+    public const CHE_DO_LEGACY = 'legacy';
+    public const CHE_DO_SEGMENT = 'segment';
 
     /**
      * Tags this campaign was sent to.
@@ -203,17 +207,58 @@ class Campaign extends BaseModel
         return $this->morphMany(Message::class, 'source')->whereNotNull('clicked_at');
     }
 
+    /**
+     * Cách nhắm mục tiêu, đã chuẩn hoá. Cột này KHÔNG có chỗ nào ghi trong app — người vận
+     * hành phải gõ tay câu UPDATE — nên một chữ hoa gõ nhầm mà rơi êm về legacy là gửi cho
+     * 7.038 người thay vì 60, và preview cũng báo đúng con số sai đó. Thà ném lỗi.
+     *
+     * Hai người đọc cột này (CreateMessages::handle và accessor ngay dưới) PHẢI đi qua đây,
+     * đừng so `=== 'segment'` tại chỗ nữa: lệch một chỗ là preview và đường gửi nói khác nhau.
+     */
+    public function cheDoNhamMuc(): string
+    {
+        $giaTri = strtolower(trim((string) ($this->targeting_mode ?? self::CHE_DO_LEGACY)));
+
+        if ($giaTri === '') {
+            return self::CHE_DO_LEGACY;
+        }
+
+        if (!in_array($giaTri, [self::CHE_DO_LEGACY, self::CHE_DO_SEGMENT], true)) {
+            throw new InvalidArgumentException(
+                'targeting_mode không hợp lệ: "' . $this->targeting_mode . '" (campaign '
+                . $this->id . '). Chỉ nhận "legacy" hoặc "segment".'
+            );
+        }
+
+        return $giaTri;
+    }
+
     public function getActiveSubscriberCountAttribute(): int
     {
         // Chế độ segment đếm bằng chính engine sẽ gửi, không thể dùng phép hợp bên dưới:
         // hợp cho ra số lớn hơn thật, làm preview sai và exceedsQuota chặn nhầm.
         //
-        // Điều kiện phải TRÙNG KHỚP với CreateMessages::handle(), nơi chỉ xét
-        // targeting_mode. Thêm `!send_to_all` vào đây là mở đường cho đúng ca tệ nhất:
+        // Điều kiện phải TRÙNG KHỚP với CreateMessages::handle(), nơi cũng chỉ xét
+        // cheDoNhamMuc(). Thêm `!send_to_all` vào đây là mở đường cho đúng ca tệ nhất:
         // chọn "All subscribers" trên campaign segment thì accessor rơi xuống nhánh
         // legacy và báo ~80.000 người — con số sẽ KHÔNG bao giờ được gửi, vì pipeline
         // ném SegmentTargetingConflictException và huỷ campaign.
-        if ($this->targeting_mode === 'segment') {
+        //
+        // cheDoNhamMuc() NÉM khi mode lạ. Ở đây KHÔNG được để nó nổi lên: accessor này
+        // nuôi exceedsQuota() và CampaignCancellationController, ném ra là chặn luôn đường
+        // cứu của người vận hành — họ hết cách huỷ campaign đang hỏng. Trả 0 như nhánh
+        // SegmentRuleMismatchException bên dưới, và KHÔNG rơi xuống phép hợp legacy: con số
+        // legacy ở đây là con số sẽ không bao giờ được gửi (đường gửi tự huỷ campaign).
+        try {
+            $cheDo = $this->cheDoNhamMuc();
+        } catch (InvalidArgumentException $e) {
+            Log::error('- targeting_mode lạ, không đếm được người nhận, trả 0. campaign_id='
+                . $this->id . ' loi=' . $e->getMessage());
+
+            return 0;
+        }
+
+        if ($cheDo === self::CHE_DO_SEGMENT) {
             $rule = SegmentRule::fromTags($this->tags);
 
             if ($rule->isEmpty()) {

@@ -3,6 +3,7 @@
 namespace Sendportal\Base\Pipelines\Campaigns;
 
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Sendportal\Base\Events\MessageDispatchEvent;
 use Sendportal\Base\Models\Campaign;
 use Sendportal\Base\Models\CampaignStatus;
@@ -48,8 +49,18 @@ class CreateMessages
         // canSendToSubscriber, nên campaign send_to_all CÓ chọn location hôm nay vẫn
         // đang bị lọc location; bỏ vòng này là tệp nhận của nó phình ra.
         // (Prod hôm nay có 0 campaign send_to_all, nhưng đừng gài mìn cho campaign sau.)
-        if ($campaign->targeting_mode === 'segment') {
-            try {
+        //
+        // cheDoNhamMuc() PHẢI nằm TRONG try. Nó ném khi targeting_mode là chữ lạ, mà cột
+        // này chỉ được ghi bằng câu UPDATE gõ tay: gõ 'segments' rồi để nó 500 ở đây là
+        // campaign kẹt ở SENDING vĩnh viễn (xem ghi chú "KHÔNG ném tiếp" bên dưới). Ném ra
+        // ngoài cũng không được, mà rơi êm về legacy càng không: đó chính là lỗi phải sửa.
+        // Huỷ campaign như mọi hỏng hóc segment khác — người vận hành nhìn thấy CANCELLED.
+        $cheDoNham = null;
+
+        try {
+            $cheDoNham = $campaign->cheDoNhamMuc();
+
+            if ($cheDoNham === Campaign::CHE_DO_SEGMENT) {
                 // send_to_all + segment là MÂU THUẪN, không phải thứ tự ưu tiên. Để
                 // send_to_all thắng ngầm là gửi cả ~80.000 người và vứt rule đi mà không
                 // log một dòng — CampaignDispatchController::send ghi đè send_to_all từ
@@ -62,24 +73,29 @@ class CreateMessages
                 }
 
                 $this->handleSegment($campaign);
-            } catch (SegmentTargetingConflictException
-                   | SegmentLocationConflictException
-                   | EmptySegmentRuleException
-                   | SegmentRuleMismatchException $e) {
-                Log::error('- Campaign segment hỏng, huỷ campaign. campaign_id=' . $campaign->id
-                    . ' loi=' . $e->getMessage());
-
-                $campaign->status_id = CampaignStatus::STATUS_CANCELLED;
-                $campaign->save();
-
-                // KHÔNG gọi $next: chạy tiếp là CompleteCampaign ghi đè thành SENT, campaign
-                // hỏng lại trông như gửi xong. Cũng KHÔNG ném tiếp: ném thì
-                // CampaignDispatchService chỉ log rồi nuốt, campaign nằm lại ở SENDING mà
-                // getQueuedCampaigns() chỉ quét QUEUED và re-send đòi DRAFT — kẹt vĩnh viễn.
-                // Dừng hẳn tại đây, để lại CANCELLED cho người vận hành nhìn thấy.
-                return $campaign;
             }
+        } catch (SegmentTargetingConflictException
+               | SegmentLocationConflictException
+               | EmptySegmentRuleException
+               | SegmentRuleMismatchException
+               | InvalidArgumentException $e) {
+            Log::error('- Campaign segment hỏng, huỷ campaign. campaign_id=' . $campaign->id
+                . ' loi=' . $e->getMessage());
 
+            $campaign->status_id = CampaignStatus::STATUS_CANCELLED;
+            $campaign->save();
+
+            // KHÔNG gọi $next: chạy tiếp là CompleteCampaign ghi đè thành SENT, campaign
+            // hỏng lại trông như gửi xong. Cũng KHÔNG ném tiếp: ném thì
+            // CampaignDispatchService chỉ log rồi nuốt, campaign nằm lại ở SENDING mà
+            // getQueuedCampaigns() chỉ quét QUEUED và re-send đòi DRAFT — kẹt vĩnh viễn.
+            // Dừng hẳn tại đây, để lại CANCELLED cho người vận hành nhìn thấy.
+            return $campaign;
+        }
+
+        // $next() nằm NGOÀI try: bắt lỗi của các stage sau rồi huỷ campaign là đổi hành vi
+        // của cả pipeline, không phải việc của chốt segment.
+        if ($cheDoNham === Campaign::CHE_DO_SEGMENT) {
             return $next($campaign);
         }
 
