@@ -123,6 +123,16 @@ class HandleSesWebhook implements ShouldQueue
     {
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-contents.html#event-publishing-retrieving-sns-contents-reject-object
         // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/event-publishing-retrieving-sns-examples.html#event-publishing-retrieving-sns-reject
+        //
+        // SES đã nhận thư rồi mới từ chối gửi đi (virus, hoặc địa chỉ nằm trong danh sách
+        // chặn của tài khoản). Thư KHÔNG tới nơi. Trước đây hàm này rỗng nên sự kiện bị vứt.
+        // Chỉ GHI NHẬN, không huỷ đăng ký — huỷ đăng ký vẫn dành riêng cho bounce permanent.
+        $this->emailWebhookService->handleFailure(
+            $messageId,
+            'Reject',
+            (string) Arr::get($event, 'reject.reason', 'SES rejected the message'),
+            Carbon::parse(Arr::get($event, 'mail.timestamp') ?: 'now')->setTimezone('UTC')
+        );
     }
 
     private function handleDelivery(string $messageId, array $event): void
@@ -163,6 +173,29 @@ class HandleSesWebhook implements ShouldQueue
         // https://aws.amazon.com/blogs/messaging-and-targeting/handling-bounces-and-complaints/
         if (strtolower($bounceType) === 'permanent') {
             $this->emailWebhookService->handlePermanentBounce($messageId, $timestamp);
+
+            return;
         }
+
+        // AWS trả 3 loại bounce: permanent (hộp thư không tồn tại), transient (hộp đầy,
+        // thư quá lớn, bị từ chối tạm thời) và undetermined. Trước đây CHỈ permanent được
+        // ghi, hai loại kia nhận xong vứt luôn — nên con số bounce trong app thấp hơn thật
+        // nhiều lần (04/09/2026: AWS đếm 611, hai DB cộng lại chỉ có 238), và bảng
+        // sendportal_message_failures rỗng trong khi MỌI adapter ESP khác đều ghi vào đó.
+        //
+        // Chỉ GHI NHẬN. Không đổi một quyết định gửi nào: handleFailure() chỉ tạo bản ghi
+        // MessageFailure và bắn event, KHÔNG huỷ đăng ký — huỷ đăng ký vẫn chỉ dành cho
+        // bounce permanent như cũ.
+        $moTa = array_filter([
+            Arr::get($event, 'bounce.bounceSubType'),
+            Arr::get($event, 'bounce.bouncedRecipients.0.diagnosticCode'),
+        ]);
+
+        $this->emailWebhookService->handleFailure(
+            $messageId,
+            (string) $bounceType,
+            $moTa ? implode(' — ', $moTa) : 'Bounce ' . $bounceType,
+            $timestamp
+        );
     }
 }
