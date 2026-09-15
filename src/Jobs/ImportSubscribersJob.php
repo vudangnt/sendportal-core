@@ -68,7 +68,12 @@ class ImportSubscribersJob implements ShouldQueue
 
     public function handle(ImportSubscriberService $importService)
     {
+        $position = 0;
+        $invalidRows = [];
+
         foreach ($this->subscribers as $row) {
+            $position++;
+
             try {
                 // Kiểm tra email có tồn tại và không rỗng
                 if (empty($row['email'] ?? null)) {
@@ -78,9 +83,17 @@ class ImportSubscribersJob implements ShouldQueue
                     continue;
                 }
 
+                // SES tu choi dia chi co khoang trang, thieu @domain, domain ket thuc bang dau cham...
+                $email = trim((string) $row['email']);
+
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $invalidRows[] = $position;
+                    continue;
+                }
+
                 $data = [
                     'id' => $row['id'] ?? null,
-                    'email' => $row['email'],
+                    'email' => $email,
                     'first_name' => $row['first_name'] ?? null,
                     'last_name' => $row['last_name'] ?? null,
                     'tags' => $this->tags,
@@ -98,6 +111,17 @@ class ImportSubscribersJob implements ShouldQueue
                 ]);
                 continue;
             }
+        }
+
+        // Một dòng log cho cả chunk: số dòng bị bỏ + vị trí dòng trong chunk, KHÔNG kèm email.
+        if ($invalidRows !== []) {
+            Log::warning('Skipping subscribers with invalid email format', [
+                'workspace_id' => $this->workspaceId,
+                'chunk' => $this->currentChunk,
+                'total_chunks' => $this->totalChunks,
+                'count' => count($invalidRows),
+                'rows_in_chunk' => array_slice($invalidRows, 0, 50),
+            ]);
         }
 
         // Cập nhật tiến trình sau khi xử lý xong chunk
