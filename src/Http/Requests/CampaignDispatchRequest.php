@@ -23,6 +23,12 @@ class CampaignDispatchRequest extends FormRequest
                 'array',
                 Rule::in($tags),
             ],
+            // Optional comma-separated suppression list (transactional deployment).
+            'exclude_emails' => [
+                'nullable',
+                'string',
+                'max:50000',
+            ],
         ];
     }
 

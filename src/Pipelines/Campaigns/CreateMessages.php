@@ -20,6 +20,14 @@ class CreateMessages
     protected $locationIds = [];
 
     /**
+     * Lowercased emails to skip for this campaign (suppression list), keyed by
+     * email for O(1) lookup. Empty unless the campaign has exclude_emails set.
+     *
+     * @var array<string, true>
+     */
+    protected $excludeEmails = [];
+
+    /**
      * CreateMessages handler
      *
      * @param Campaign $campaign
@@ -29,6 +37,8 @@ class CreateMessages
      */
     public function handle(Campaign $campaign, $next)
     {
+        $this->excludeEmails = $this->parseExcludeEmails($campaign->exclude_emails ?? null);
+
         foreach ($campaign->locations as $location) {
             $this->locationIds[] = $location->id;
         }
@@ -106,6 +116,41 @@ class CreateMessages
     }
 
     /**
+     * Parse the campaign's comma/space/newline/semicolon-separated exclude list
+     * into a lookup keyed by lowercased email. Empty array when nothing is set.
+     *
+     * @return array<string, true>
+     */
+    protected function parseExcludeEmails(?string $raw): array
+    {
+        if ($raw === null || trim($raw) === '') {
+            return [];
+        }
+
+        $out = [];
+        foreach (preg_split('/[\s,;]+/', $raw) as $email) {
+            $email = strtolower(trim((string) $email));
+            if ($email !== '') {
+                $out[$email] = true;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Whether a subscriber email is on the campaign suppression list.
+     */
+    protected function isExcludedEmail(?string $email): bool
+    {
+        if ($email === null || $email === '') {
+            return false;
+        }
+
+        return isset($this->excludeEmails[strtolower(trim($email))]);
+    }
+
+    /**
      * Check if we can send to this subscriber
      * @param int $campaignId
      * @param int $subscriberId
@@ -116,6 +161,16 @@ class CreateMessages
      */
     protected function canSendToSubscriber($campaignId, $subscriberId, $subscriber): bool
     {
+        // Suppression list (campaign->exclude_emails): skip recipients the marketer
+        // explicitly listed. Empty unless the campaign set exclude_emails.
+        if ($this->excludeEmails !== [] && $this->isExcludedEmail($subscriber->email ?? null)) {
+            Log::info('- Subscriber email is on the campaign suppression list, skipping', [
+                'campaign_id' => $campaignId,
+                'subscriber_id' => $subscriberId,
+            ]);
+            return false;
+        }
+
         $key = $campaignId . '-' . $subscriberId;
 
         $subscriberLocation = $subscriber->locations->pluck('id')->toArray();

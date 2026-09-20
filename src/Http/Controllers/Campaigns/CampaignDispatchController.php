@@ -50,9 +50,19 @@ class CampaignDispatchController extends Controller
                 ->withErrors(__('Please select an Email Service'));
         }
 
-        $campaign->update([
+        $campaignUpdates = [
             'send_to_all' => $request->get('recipients') === 'send_to_all',
-        ]);
+        ];
+
+        // Suppression list is opt-in per deployment: only touch the column when the
+        // form actually submits the field, so deployments whose DB has no
+        // exclude_emails column (they share sendportal-core) are never referenced.
+        if ($request->has('exclude_emails')) {
+            $raw = trim((string) $request->get('exclude_emails'));
+            $campaignUpdates['exclude_emails'] = $raw !== '' ? $raw : null;
+        }
+
+        $campaign->update($campaignUpdates);
 
         $campaign->tags()->sync($request->get('tags'));
         $campaign->locations()->sync($request->get('locations'));
