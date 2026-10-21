@@ -11,6 +11,7 @@ use Sendportal\Base\Console\Commands\TagTaxonomyReport;
 use Sendportal\Base\Console\Commands\GroupSkillVariantsCommand;
 use Sendportal\Base\Console\Commands\ImportLocationsAsTags;
 use Sendportal\Base\Console\Commands\ImportSkillsAsTags;
+use Sendportal\Base\Console\Commands\MergeProvinces2025;
 use Sendportal\Base\Providers\EventServiceProvider;
 use Sendportal\Base\Providers\FormServiceProvider;
 use Sendportal\Base\Providers\ResolverProvider;
@@ -49,6 +50,7 @@ class SendportalBaseServiceProvider extends ServiceProvider
                 GroupSkillVariantsCommand::class,
                 ImportSkillsAsTags::class,
                 ImportLocationsAsTags::class,
+                MergeProvinces2025::class,
             ]);
 
             $this->app->booted(function () {

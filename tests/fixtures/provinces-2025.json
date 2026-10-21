@@ -1,0 +1,367 @@
+[
+    {
+        "code": "01",
+        "name": "Hà Nội",
+        "old": [
+            "Hà Nội"
+        ],
+        "aliases": [
+            "HN",
+            "Hanoi",
+            "Hà Tây"
+        ]
+    },
+    {
+        "code": "04",
+        "name": "Cao Bằng",
+        "old": [
+            "Cao Bằng"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "08",
+        "name": "Tuyên Quang",
+        "old": [
+            "Tuyên Quang",
+            "Hà Giang"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "11",
+        "name": "Điện Biên",
+        "old": [
+            "Điện Biên"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "12",
+        "name": "Lai Châu",
+        "old": [
+            "Lai Châu"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "14",
+        "name": "Sơn La",
+        "old": [
+            "Sơn La"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "15",
+        "name": "Lào Cai",
+        "old": [
+            "Lào Cai",
+            "Yên Bái"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "19",
+        "name": "Thái Nguyên",
+        "old": [
+            "Thái Nguyên",
+            "Bắc Kạn"
+        ],
+        "aliases": [
+            "Bắc Cạn"
+        ]
+    },
+    {
+        "code": "20",
+        "name": "Lạng Sơn",
+        "old": [
+            "Lạng Sơn"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "22",
+        "name": "Quảng Ninh",
+        "old": [
+            "Quảng Ninh"
+        ],
+        "aliases": [
+            "Hạ Long"
+        ]
+    },
+    {
+        "code": "24",
+        "name": "Bắc Ninh",
+        "old": [
+            "Bắc Ninh",
+            "Bắc Giang"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "25",
+        "name": "Phú Thọ",
+        "old": [
+            "Phú Thọ",
+            "Vĩnh Phúc",
+            "Hoà Bình"
+        ],
+        "aliases": [
+            "Việt Trì"
+        ]
+    },
+    {
+        "code": "31",
+        "name": "Hải Phòng",
+        "old": [
+            "Hải Phòng",
+            "Hải Dương"
+        ],
+        "aliases": [
+            "Haiphong"
+        ]
+    },
+    {
+        "code": "33",
+        "name": "Hưng Yên",
+        "old": [
+            "Hưng Yên",
+            "Thái Bình"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "37",
+        "name": "Ninh Bình",
+        "old": [
+            "Ninh Bình",
+            "Hà Nam",
+            "Nam Định"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "38",
+        "name": "Thanh Hóa",
+        "old": [
+            "Thanh Hóa"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "40",
+        "name": "Nghệ An",
+        "old": [
+            "Nghệ An"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "42",
+        "name": "Hà Tĩnh",
+        "old": [
+            "Hà Tĩnh"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "44",
+        "name": "Quảng Trị",
+        "old": [
+            "Quảng Trị",
+            "Quảng Bình"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "46",
+        "name": "Huế",
+        "old": [
+            "Thừa Thiên Huế"
+        ],
+        "aliases": [
+            "Hue"
+        ]
+    },
+    {
+        "code": "48",
+        "name": "Đà Nẵng",
+        "old": [
+            "Đà Nẵng",
+            "Quảng Nam"
+        ],
+        "aliases": [
+            "Danang",
+            "Hội An",
+            "Tam Kỳ"
+        ]
+    },
+    {
+        "code": "51",
+        "name": "Quảng Ngãi",
+        "old": [
+            "Quảng Ngãi",
+            "Kon Tum"
+        ],
+        "aliases": [
+            "Kontum"
+        ]
+    },
+    {
+        "code": "52",
+        "name": "Gia Lai",
+        "old": [
+            "Gia Lai",
+            "Bình Định"
+        ],
+        "aliases": [
+            "Quy Nhơn",
+            "Pleiku"
+        ]
+    },
+    {
+        "code": "56",
+        "name": "Khánh Hòa",
+        "old": [
+            "Khánh Hòa",
+            "Ninh Thuận"
+        ],
+        "aliases": [
+            "Nha Trang",
+            "Phan Rang"
+        ]
+    },
+    {
+        "code": "66",
+        "name": "Đắk Lắk",
+        "old": [
+            "Đắk Lắk",
+            "Phú Yên"
+        ],
+        "aliases": [
+            "Buôn Ma Thuột",
+            "Buôn Mê Thuột",
+            "BMT",
+            "Daklak",
+            "Dac Lac"
+        ]
+    },
+    {
+        "code": "68",
+        "name": "Lâm Đồng",
+        "old": [
+            "Lâm Đồng",
+            "Đắk Nông",
+            "Bình Thuận"
+        ],
+        "aliases": [
+            "Đà Lạt",
+            "Dalat",
+            "Daknong",
+            "Phan Thiết"
+        ]
+    },
+    {
+        "code": "75",
+        "name": "Đồng Nai",
+        "old": [
+            "Đồng Nai",
+            "Bình Phước"
+        ],
+        "aliases": [
+            "Biên Hòa",
+            "Long Thành"
+        ]
+    },
+    {
+        "code": "79",
+        "name": "Hồ Chí Minh",
+        "old": [
+            "Hồ Chí Minh",
+            "Bình Dương",
+            "Bà Rịa - Vũng Tàu"
+        ],
+        "aliases": [
+            "HCM",
+            "HCMC",
+            "TPHCM",
+            "TP HCM",
+            "Hochiminh",
+            "Ho Chi Minh City",
+            "Sài Gòn",
+            "Saigon",
+            "Thủ Đức",
+            "Vũng Tàu",
+            "Vungtau",
+            "BRVT",
+            "BR VT",
+            "Bà Rịa Vũng Tàu",
+            "Bà Rịa",
+            "Thủ Dầu Một",
+            "Dĩ An",
+            "Bến Cát"
+        ]
+    },
+    {
+        "code": "80",
+        "name": "Tây Ninh",
+        "old": [
+            "Tây Ninh",
+            "Long An"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "82",
+        "name": "Đồng Tháp",
+        "old": [
+            "Đồng Tháp",
+            "Tiền Giang"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "86",
+        "name": "Vĩnh Long",
+        "old": [
+            "Vĩnh Long",
+            "Bến Tre",
+            "Trà Vinh"
+        ],
+        "aliases": []
+    },
+    {
+        "code": "91",
+        "name": "An Giang",
+        "old": [
+            "An Giang",
+            "Kiên Giang"
+        ],
+        "aliases": [
+            "Phú Quốc",
+            "Rạch Giá"
+        ]
+    },
+    {
+        "code": "92",
+        "name": "Cần Thơ",
+        "old": [
+            "Cần Thơ",
+            "Sóc Trăng",
+            "Hậu Giang"
+        ],
+        "aliases": [
+            "Cantho"
+        ]
+    },
+    {
+        "code": "96",
+        "name": "Cà Mau",
+        "old": [
+            "Cà Mau",
+            "Bạc Liêu"
+        ],
+        "aliases": []
+    }
+]
