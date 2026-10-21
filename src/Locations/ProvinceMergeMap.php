@@ -34,6 +34,7 @@ final class ProvinceMergeMap
         'ư' => 'u', 'ừ' => 'u', 'ứ' => 'u', 'ử' => 'u', 'ữ' => 'u', 'ự' => 'u',
         'ỳ' => 'y', 'ý' => 'y', 'ỷ' => 'y', 'ỹ' => 'y', 'ỵ' => 'y',
         'đ' => 'd',
+        'ð' => 'd', // Ð/ð (U+00D0/U+00F0, eth) hay bị dùng thay Đ trong văn bản cũ
     ];
 
     /** @var array<string, array{code:string, name:string, old:array<int,string>, aliases:array<int,string>}> */

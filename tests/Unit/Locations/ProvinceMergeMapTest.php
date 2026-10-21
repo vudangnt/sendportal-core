@@ -28,6 +28,8 @@ class ProvinceMergeMapTest extends TestCase
         $this->assertSame('Phú Thọ', $map->resolve('Hòa Bình'));
         $this->assertSame('Phú Thọ', $map->resolve('Hoà Bình'));
         $this->assertSame('Khánh Hòa', $map->resolve('Nha Trang'));
+        // Ð (U+00D0, eth) hay bị dùng thay Đ trong văn bản cũ.
+        $this->assertSame('Đồng Nai', $map->resolve('Ðồng Nai'));
     }
 
     /** @test */
