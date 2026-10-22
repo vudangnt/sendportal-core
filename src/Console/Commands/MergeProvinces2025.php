@@ -17,6 +17,7 @@ use Throwable;
  * location tỉnh cũ sang dòng giữ lại. KHÔNG xoá dòng cũ (còn 0 subscriber), KHÔNG đụng
  * campaign_location và tag LOC.
  *
+ * --merge-variants: dòng biến thể (vd "TP. Hồ Chí Minh" cạnh dòng giữ "Hồ Chí Minh") cũng được ghép như dòng cũ.
  * Mặc định dry-run. --apply sao lưu vào <bảng>_bak_<Ymd> rồi ghi trong transaction; idempotent.
  * --restore=Ymd phục hồi tên, pivot và subscribers.location_id của các location bị ảnh hưởng.
  */
@@ -27,6 +28,7 @@ class MergeProvinces2025 extends Command
     protected $signature = 'sp:locations:merge-2025
                             {--workspace= : workspace_id (bắt buộc)}
                             {--map= : đường dẫn file JSON bảng ghép xuất từ RC}
+                            {--merge-variants : gộp cả dòng biến thể (chuẩn hoá trùng tên tỉnh mới) vào dòng giữ}
                             {--apply : ghi thật (mặc định dry-run)}
                             {--restore= : phục hồi từ bản sao lưu Ymd}';
 
@@ -54,7 +56,7 @@ class MergeProvinces2025 extends Command
             return 1;
         }
 
-        $plan = (new ProvinceMergePlanner($map))->build($workspaceId);
+        $plan = (new ProvinceMergePlanner($map, (bool) $this->option('merge-variants')))->build($workspaceId);
         $apply = (bool) $this->option('apply');
 
         $this->report($plan, $apply);
@@ -102,10 +104,12 @@ class MergeProvinces2025 extends Command
                     count($m['move']), count($m['drop']), $m['subscriberRows']];
             }, $plan['merges']));
 
-        $this->line('Dòng biến thể giữ nguyên (chuẩn hoá trùng tên mới nhưng không bị ghép; người quyết định sau):');
-        $this->table(['id', 'tên', 'sub', 'tỉnh mới'], array_map(function ($v) {
-            return [$v['id'], $v['name'], $v['subs'], $v['province']];
-        }, $plan['variants']));
+        if ($plan['variants'] !== []) {
+            $this->line('Dòng biến thể giữ nguyên (chuẩn hoá trùng tên mới nhưng không bị ghép; thêm --merge-variants để ghép):');
+            $this->table(['id', 'tên', 'sub', 'tỉnh mới'], array_map(function ($v) {
+                return [$v['id'], $v['name'], $v['subs'], $v['province']];
+            }, $plan['variants']));
+        }
 
         if ($plan['skipped'] !== []) {
             $this->line('Bỏ qua:');

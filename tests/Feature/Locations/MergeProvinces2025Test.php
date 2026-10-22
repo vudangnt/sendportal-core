@@ -326,6 +326,104 @@ class MergeProvinces2025Test extends TestCase
         $this->assertSame($before[0], $this->rows('sendportal_locations'));
     }
 
+    /** @return array<string, int> kept row + variant row + old province, v2 overlaps the kept row */
+    private function variantFixture(): array
+    {
+        $ids = [
+            'hcm' => $this->loc('Hồ Chí Minh'),
+            'variant' => $this->loc('TP. Hồ Chí Minh'),
+            'bd' => $this->loc('Bình Dương'),
+        ];
+        $v1 = $this->sub('v1@x.vn', $ids['variant']);
+        $v2 = $this->sub('v2@x.vn', $ids['variant']);
+        $b1 = $this->sub('b1@x.vn', $ids['bd']);
+        $this->link($ids['variant'], $v1);
+        $this->link($ids['variant'], $v2);
+        $this->link($ids['hcm'], $v2);   // duplicate of the kept row, must be dropped
+        $this->link($ids['bd'], $b1);
+
+        return $ids + ['v1' => $v1, 'v2' => $v2, 'b1' => $b1];
+    }
+
+    /** @test */
+    public function variants_are_left_alone_without_the_flag(): void
+    {
+        $ids = $this->variantFixture();
+
+        $out = $this->merge(['--apply' => true]);
+
+        $this->assertSame([$ids['v1'], $ids['v2']], $this->subsOf($ids['variant']));
+        $this->assertSame($ids['variant'], (int) DB::table('sendportal_subscribers')->where('id', $ids['v1'])->value('location_id'));
+        $this->assertSame([$ids['v2'], $ids['b1']], $this->subsOf($ids['hcm']));
+        $this->assertStringContainsString('biến thể giữ nguyên', $out);
+    }
+
+    /** @test */
+    public function merge_variants_dry_run_lists_variants_in_the_merge_table_and_writes_nothing(): void
+    {
+        $this->variantFixture();
+        $before = $this->snapshot();
+
+        $out = $this->merge(['--merge-variants' => true]);
+
+        $this->assertSame($before, $this->snapshot());
+        $this->assertStringContainsString('TP. Hồ Chí Minh', $out);
+        $this->assertStringNotContainsString('biến thể giữ nguyên', $out, 'variants table is empty with the flag');
+        $this->assertStringContainsString('pivot cần chuyển: 2', $out);   // v1 + b1
+        $this->assertStringContainsString('pivot trùng sẽ bỏ: 1', $out);    // v2
+        $this->assertStringContainsString('subscribers.location_id cần đổi: 3', $out); // v1, v2, b1
+    }
+
+    /** @test */
+    public function merge_variants_apply_moves_variant_subscribers_and_is_idempotent(): void
+    {
+        $ids = $this->variantFixture();
+
+        $this->merge(['--apply' => true, '--merge-variants' => true]);
+
+        $this->assertSame([$ids['v1'], $ids['v2'], $ids['b1']], $this->subsOf($ids['hcm']));
+        $this->assertSame([], $this->subsOf($ids['variant']));
+        $this->assertSame([], $this->subsOf($ids['bd']));
+        $this->assertSame(0, DB::table('sendportal_subscribers')->where('location_id', $ids['variant'])->count());
+        $this->assertSame($ids['hcm'], (int) DB::table('sendportal_subscribers')->where('id', $ids['v1'])->value('location_id'));
+        $this->assertSame($ids['hcm'], (int) DB::table('sendportal_subscribers')->where('id', $ids['v2'])->value('location_id'));
+        $this->assertSame(3, DB::table('sendportal_locations')->count(), 'variant row is kept');
+
+        $after = $this->snapshot();
+        $out = $this->merge(['--apply' => true, '--merge-variants' => true]);
+
+        $this->assertSame($after, $this->snapshot());
+        $this->assertStringContainsString('Không có gì để thay đổi', $out);
+    }
+
+    /** @test */
+    public function restore_returns_variant_pivots_after_merge_variants(): void
+    {
+        $ids = $this->variantFixture();
+        $before = $this->snapshot();
+
+        $this->merge(['--apply' => true, '--merge-variants' => true]);
+        $out = $this->merge(['--restore' => date('Ymd')]);
+
+        $this->assertSame(0, $this->lastExit, $out);
+        $this->assertSame([$ids['v1'], $ids['v2']], $this->subsOf($ids['variant']));
+        $this->assertSame($before[1], $this->rows('sendportal_location_subscriber'));
+        $this->assertSame($before[2], $this->rows('sendportal_subscribers'));
+    }
+
+    /** @test */
+    public function variants_without_a_kept_row_stay_skipped_with_the_flag(): void
+    {
+        $variant = $this->loc('TP. Hồ Chí Minh');
+        $a = $this->sub('a@x.vn', $variant);
+        $this->link($variant, $a);
+
+        $out = $this->merge(['--apply' => true, '--merge-variants' => true]);
+
+        $this->assertSame([$a], $this->subsOf($variant));
+        $this->assertStringContainsString('thiếu dòng giữ', $out);
+    }
+
     /** @test */
     public function restore_fails_cleanly_when_backup_is_missing(): void
     {

@@ -24,9 +24,13 @@ final class ProvinceMergePlanner
     /** @var ProvinceMergeMap */
     private $map;
 
-    public function __construct(ProvinceMergeMap $map)
+    /** @var bool gộp cả dòng biến thể vào dòng giữ (thay vì giữ nguyên) */
+    private $mergeVariants;
+
+    public function __construct(ProvinceMergeMap $map, bool $mergeVariants = false)
     {
         $this->map = $map;
+        $this->mergeVariants = $mergeVariants;
     }
 
     public function build(int $workspaceId): array
@@ -124,7 +128,7 @@ final class ProvinceMergePlanner
             }
             $trimmed = trim($row->name);
             $isOldFirstDuplicate = $kept !== null && $oldFirst !== $newName && $trimmed === $oldFirst;
-            if (! ($this->map->isMergedAway($row->name) || $isOldFirstDuplicate)) {
+            if (! ($this->map->isMergedAway($row->name) || $isOldFirstDuplicate || $this->mergeVariants)) {
                 $plan['variants'][] = ['id' => $row->id, 'name' => $row->name, 'subs' => $row->subs, 'province' => $newName];
                 continue;
             }
