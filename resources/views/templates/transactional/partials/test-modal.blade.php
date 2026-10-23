@@ -66,7 +66,7 @@ document.getElementById('send-test-form').addEventListener('submit', async funct
     } else {
         result.classList.remove('alert-info');
         result.classList.add('alert-danger');
-        result.textContent = data.error || ('Failed (' + resp.status + ')');
+        result.textContent = data.message || data.error || ('Failed (' + resp.status + ')');
     }
 });
 </script>
