@@ -71,6 +71,7 @@ class CampaignDispatchCommand extends Command
         // Workspace quá ngày dùng cuối (cột host workspaces.expires_on) chỉ được xem: campaign
         // của nó nằm chờ ở QUEUED tới khi gia hạn. Host chưa có cột (site pin nhánh lib khác,
         // hoặc vài giây giữa composer update và migrate) thì dispatch như cũ.
+        // Cùng quy tắc với App\Models\Workspace::isExpired() ở host: ngày expires_on vẫn được gửi.
         if (Schema::hasColumn('workspaces', 'expires_on')) {
             $query->whereNotIn('workspace_id', $this->expiredWorkspaceIds());
         }
@@ -82,7 +83,7 @@ class CampaignDispatchCommand extends Command
     {
         return DB::table('workspaces')
             ->whereNotNull('expires_on')
-            ->whereDate('expires_on', '<', today()->toDateString())
+            ->where('expires_on', '<', today()->toDateString())
             ->select('id');
     }
 }
