@@ -6,7 +6,10 @@ namespace Sendportal\Base\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Sendportal\Base\Models\Campaign;
 use Sendportal\Base\Models\CampaignStatus;
 use Sendportal\Base\Repositories\Campaigns\CampaignTenantRepositoryInterface;
@@ -62,8 +65,24 @@ class CampaignDispatchCommand extends Command
      */
     protected function getQueuedCampaigns(): EloquentCollection
     {
-        return Campaign::where('status_id', CampaignStatus::STATUS_QUEUED)
-            ->where('scheduled_at', '<=', now())
-            ->get();
+        $query = Campaign::where('status_id', CampaignStatus::STATUS_QUEUED)
+            ->where('scheduled_at', '<=', now());
+
+        // Workspace quá ngày dùng cuối (cột host workspaces.expires_on) chỉ được xem: campaign
+        // của nó nằm chờ ở QUEUED tới khi gia hạn. Host chưa có cột (site pin nhánh lib khác,
+        // hoặc vài giây giữa composer update và migrate) thì dispatch như cũ.
+        if (Schema::hasColumn('workspaces', 'expires_on')) {
+            $query->whereNotIn('workspace_id', $this->expiredWorkspaceIds());
+        }
+
+        return $query->get();
+    }
+
+    protected function expiredWorkspaceIds(): Builder
+    {
+        return DB::table('workspaces')
+            ->whereNotNull('expires_on')
+            ->whereDate('expires_on', '<', today()->toDateString())
+            ->select('id');
     }
 }
